@@ -303,6 +303,17 @@
   const onScroll = () => nav.classList.toggle("scrolled", window.scrollY > 40);
   window.addEventListener("scroll", onScroll); onScroll();
 
+  /* ---------- 모바일 햄버거 메뉴 ---------- */
+  const navToggle = $("navToggle"), navlinks = $("navlinks");
+  if (navToggle && navlinks) {
+    const closeMenu = () => { nav.classList.remove("menu-open"); navToggle.setAttribute("aria-expanded", "false"); };
+    navToggle.addEventListener("click", () => {
+      const open = nav.classList.toggle("menu-open");
+      navToggle.setAttribute("aria-expanded", open ? "true" : "false");
+    });
+    navlinks.querySelectorAll("a").forEach((a) => a.addEventListener("click", closeMenu));
+  }
+
   /* ---------- 진입 애니메이션 ---------- */
   const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }), { threshold: 0.12 });
   document.querySelectorAll(".reveal").forEach((r) => io.observe(r));
