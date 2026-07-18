@@ -197,19 +197,11 @@
       $("studyChannel").appendChild(a);
     }
     const grid = $("studyGrid");
-    const ytid = (u) => { if (!u) return null; const m = String(u).match(/(?:youtu\.be\/|[?&]v=|shorts\/|embed\/)([A-Za-z0-9_-]{11})/); return m ? m[1] : (/^[A-Za-z0-9_-]{11}$/.test(u) ? u : null); };
+    const ytid = (u) => { if (!u) return null; const m = String(u).match(/(?:youtu\.be\/|[?&]v=|shorts\/|embed\/|live\/)([A-Za-z0-9_-]{11})/); return m ? m[1] : (/^[A-Za-z0-9_-]{11}$/.test(u) ? u : null); };
 
-    // 화면에서 추가한 유튜브 링크는 localStorage 에 저장
-    const LS = "akh_study_yt";
-    const getYT = () => { try { return JSON.parse(localStorage.getItem(LS)) || []; } catch (e) { return []; } };
-    const setYT = (a) => { try { localStorage.setItem(LS, JSON.stringify(a)); } catch (e) {} };
-
-    // 로컬 동영상 파일은 IndexedDB 에 저장(브라우저 내 유지)
-    let _db = null;
-    const db = () => new Promise((res, rej) => { if (_db) return res(_db); const r = indexedDB.open("akh_study", 1); r.onupgradeneeded = () => r.result.createObjectStore("vids", { keyPath: "id", autoIncrement: true }); r.onsuccess = () => { _db = r.result; res(_db); }; r.onerror = () => rej(r.error); });
-    const idbAll = () => db().then((d) => new Promise((res) => { const t = d.transaction("vids").objectStore("vids").getAll(); t.onsuccess = () => res(t.result || []); t.onerror = () => res([]); })).catch(() => []);
-    const idbAdd = (name, blob) => db().then((d) => new Promise((res, rej) => { const t = d.transaction("vids", "readwrite").objectStore("vids").add({ name: name, blob: blob }); t.onsuccess = () => res(); t.onerror = () => rej(t.error); }));
-    const idbDel = (id) => db().then((d) => new Promise((res) => { const t = d.transaction("vids", "readwrite").objectStore("vids").delete(id); t.onsuccess = () => res(); t.onerror = () => res(); })).catch(() => {});
+    // 게시된 영상 = data.js(study.videos) + videos.js(window.STUDY_VIDEOS).
+    // videos.js 는 '안경스_관리' 로컬 도구가 갱신해서 GitHub에 올린다 → 데스크탑·모바일 모두 반영.
+    const published = [].concat(S.videos || [], window.STUDY_VIDEOS || []);
 
     // 영상 크게 보기(라이트박스)
     const lb = $("lightbox"), lbInner = $("lbInner");
@@ -227,11 +219,7 @@
       ifr.setAttribute("allowfullscreen", "");
       openLB(ifr);
     }
-    function playFile(url) {
-      const v = el("video"); v.src = url; v.controls = true; v.autoplay = true; openLB(v);
-    }
-
-    function ytCard(id, title, onDel) {
+    function ytCard(id, title) {
       const card = el("div", "yt-card");
       const thumb = el("div", "yt-thumb");
       thumb.style.backgroundImage = "url('https://img.youtube.com/vi/" + id + "/hqdefault.jpg')";
@@ -239,63 +227,11 @@
       thumb.addEventListener("click", () => playYT(id));
       card.appendChild(thumb);
       if (title) card.appendChild(el("div", "yt-title", esc(title)));
-      if (onDel) { const x = el("button", "yt-del", "✕"); x.title = "삭제"; x.addEventListener("click", onDel); card.appendChild(x); }
       return card;
     }
-    function fileCard(name, url, onDel) {
-      const card = el("div", "yt-card");
-      const thumb = el("div", "yt-thumb file");
-      const pv = el("video"); pv.src = url; pv.preload = "metadata"; pv.muted = true; thumb.appendChild(pv);
-      thumb.appendChild(el("div", "yt-play", "▶"));
-      thumb.addEventListener("click", () => playFile(url));
-      card.appendChild(thumb);
-      card.appendChild(el("div", "yt-title", esc(name || "동영상")));
-      if (onDel) { const x = el("button", "yt-del", "✕"); x.title = "삭제"; x.addEventListener("click", onDel); card.appendChild(x); }
-      return card;
-    }
-
-    function render() {
-      grid.innerHTML = "";
-      const seen = new Set();
-      (S.videos || []).forEach((v) => { const id = ytid(v.url || v.id); if (id && !seen.has(id)) { seen.add(id); grid.appendChild(ytCard(id, v.title)); } });
-      getYT().forEach((v, idx) => { const id = ytid(v.url); if (id && !seen.has(id)) { seen.add(id); grid.appendChild(ytCard(id, v.title, () => { const a = getYT(); a.splice(idx, 1); setYT(a); render(); })); } });
-      idbAll().then((files) => {
-        files.forEach((f) => { const url = URL.createObjectURL(f.blob); grid.appendChild(fileCard(f.name, url, () => { idbDel(f.id).then(render); })); });
-        if (!grid.children.length) grid.appendChild(el("div", "study-empty", '아직 등록된 영상이 없습니다. 아래 <b>＋ 영상 추가 / 관리</b>를 눌러 유튜브 링크나 동영상 파일을 넣어보세요.'));
-      });
-    }
-    render();
-
-    // 추가/관리 UI — '주인 모드'(주소에 ?admin 포함)에서만 노출
-    const ownerMode = /(?:[?#&])admin\b/.test(location.search + location.hash);
-    const adminBox = document.querySelector(".study-admin");
-    if (adminBox && !ownerMode) adminBox.style.display = "none";
-
-    const toggle = $("studyAdminToggle"), panel = $("studyAdminPanel");
-    if (toggle && panel) toggle.addEventListener("click", () => { panel.hidden = !panel.hidden; });
-
-    // 배포본 영구 반영: 화면에서 추가한 유튜브 링크를 담은 새 data.js 내려받기
-    if ($("studyPublish")) $("studyPublish").addEventListener("click", () => {
-      const merged = [], seen = new Set();
-      (S.videos || []).forEach((v) => { const id = ytid(v.url || v.id); if (id && !seen.has(id)) { seen.add(id); merged.push({ url: "https://youtu.be/" + id, title: v.title || "" }); } });
-      getYT().forEach((v) => { const id = ytid(v.url); if (id && !seen.has(id)) { seen.add(id); merged.push({ url: v.url, title: v.title || "" }); } });
-      const clone = JSON.parse(JSON.stringify(P));
-      clone.study.videos = merged;
-      const text = "/* 안경희 소개 웹사이트 — 콘텐츠 데이터 (일부 자동 생성) */\nconst PROFILE = " + JSON.stringify(clone, null, 2) + ";\nwindow.PROFILE = PROFILE;\n";
-      const a = el("a"); a.href = URL.createObjectURL(new Blob([text], { type: "text/javascript" })); a.download = "data.js"; document.body.appendChild(a); a.click(); a.remove();
-      alert("data.js를 내려받았어요.\n\n안경희챗봇 폴더의 data.js를 이 파일로 교체하면 유튜브 영상이 배포본에 영구 반영됩니다.\n(파일로 올린 동영상은 용량 때문에 담기지 않아요 — 개인 브라우저용입니다.)");
-    });
-    if ($("ytAdd")) $("ytAdd").addEventListener("click", () => {
-      const u = $("ytUrl").value.trim();
-      if (!ytid(u)) { alert("올바른 유튜브 링크를 붙여넣어 주세요."); return; }
-      const a = getYT(); a.push({ url: u, title: $("ytTitle").value.trim() }); setYT(a);
-      $("ytUrl").value = ""; $("ytTitle").value = ""; render();
-    });
-    if ($("vidFile")) $("vidFile").addEventListener("change", (e) => {
-      const f = e.target.files && e.target.files[0]; if (!f) return;
-      idbAdd(f.name, f).then(render).catch(() => alert("이 브라우저에서는 파일 저장이 지원되지 않아요. 유튜브 링크를 이용해 주세요."));
-      e.target.value = "";
-    });
+    const seen = new Set();
+    published.forEach((v) => { const id = ytid(v.url || v.id); if (id && !seen.has(id)) { seen.add(id); grid.appendChild(ytCard(id, v.title)); } });
+    if (!grid.children.length) grid.appendChild(el("div", "study-empty", '아직 등록된 영상이 없습니다. <b>안경스_관리</b> 도구에서 유튜브 링크를 추가·게시하면 여기에 표시됩니다.'));
   }
 
   /* ---------- 내비게이션 스크롤 효과 ---------- */
@@ -368,7 +304,7 @@
       case "book": return bookAnswer();
       case "research": return { text: "주요 논문·연구예요.\n\n" + P.research.map((r) => "• " + r.title + " (" + r.venue + ")" + (r.note ? " 🏆 " + r.note : "")).join("\n"), chips: qaChips(5) };
       case "endorse": return { text: "이 책과 저를 이렇게 평가해 주셨어요.\n\n" + P.endorsements.map((q) => "“" + q.quote.slice(0, 55) + "…”\n— " + q.name).join("\n\n"), chips: qaChips(5) };
-      case "study": { const n = (P.study && P.study.videos ? P.study.videos.length : 0); return { text: (P.study ? P.study.title + "(" + P.study.short + ") — " + P.study.desc : "경제스터디") + (n ? "\n\n위쪽 ‘안경스’ 섹션에서 영상을 보실 수 있어요." : "\n\n곧 영상이 올라올 예정이에요. 위쪽 ‘안경스’ 섹션을 확인해 주세요."), chips: qaChips(5) }; }
+      case "study": { const n = ((P.study && P.study.videos ? P.study.videos.length : 0) + (window.STUDY_VIDEOS ? window.STUDY_VIDEOS.length : 0)); return { text: (P.study ? P.study.title + "(" + P.study.short + ") — " + P.study.desc : "경제스터디") + (n ? "\n\n위쪽 ‘안경스’ 섹션에서 영상을 보실 수 있어요." : "\n\n곧 영상이 올라올 예정이에요. 위쪽 ‘안경스’ 섹션을 확인해 주세요."), chips: qaChips(5) }; }
       case "browse": return { text: "어떤 주제가 궁금하세요? 아래에서 골라보셔도 좋아요.", chips: MENU };
       case "admin": return adminList();
     }

@@ -146,24 +146,6 @@
         <p class="section-lead" id="studyDesc"></p>
         <div id="studyChannel" style="margin-top:16px"></div>
       </div>
-      <div class="study-admin reveal">
-        <button class="study-admin-toggle" id="studyAdminToggle">＋ 영상 추가 / 관리</button>
-        <div class="study-admin-panel" id="studyAdminPanel" hidden>
-          <div class="sa-row">
-            <input id="ytUrl" type="text" placeholder="유튜브 링크 붙여넣기 (youtu.be/… 또는 watch?v=…)" />
-            <input id="ytTitle" type="text" placeholder="제목 (선택)" />
-            <button id="ytAdd">＋ 유튜브 추가</button>
-          </div>
-          <div class="sa-row">
-            <label class="filebtn">🎬 동영상 파일 올리기<input id="vidFile" type="file" accept="video/*" /></label>
-            <span class="sa-note">※ 파일로 올린 영상은 <b>이 브라우저에만</b> 저장돼요(시험·개인용). 공유·배포용은 유튜브 링크를 쓰세요.</span>
-          </div>
-          <div class="sa-row">
-            <button id="studyPublish">💾 배포본에 영구 반영 (data.js 내려받기)</button>
-            <span class="sa-note">화면에서 추가한 <b>유튜브 링크</b>를 담은 새 data.js를 내려받아요. 폴더의 data.js를 교체하면 모두에게 보입니다.</span>
-          </div>
-        </div>
-      </div>
       <div class="study-grid reveal" id="studyGrid"></div>
     </div>
   </section>
@@ -228,6 +210,7 @@
   </div>
 
   <script src="data.js"></script>
+  <script src="videos.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
