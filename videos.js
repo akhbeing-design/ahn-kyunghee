@@ -4,6 +4,6 @@
 window.STUDY_VIDEOS = [
   {
     "url": "https://youtu.be/aqz-KE-bpKQ",
-    "title": "TEST-delete-soon"
+    "title": "테스트 · 안경스 1강 (삭제 예정)"
   }
 ];
