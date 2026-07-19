@@ -476,17 +476,31 @@
         this.bot("답변을 저장했어요. 앞으로 같은 질문에는 이 답변이 자동으로 표시됩니다. ✅", qaChips(4));
       });
     },
-    // 방문자 → 안경희 박사에게 질문 전달 (답변받을 이메일 선택 입력)
+    // 방문자 → 안경희 박사에게 질문 전달 (공개/개인 선택 + 이메일)
     showForward(q) {
+      let mode = "public";
       const wrap = el("div", "msg bot");
       wrap.innerHTML = "<b>안경희 박사에게 질문 전달</b><br>질문: “" + esc(q) + "”";
       const box = el("div", "owner-box");
-      const em = el("input"); em.type = "email"; em.placeholder = "답변받을 이메일 (선택) — 남기시면 직접 답장드립니다";
+      const modeRow = el("div", "ob-mode");
+      const pubBtn = el("button", "obm on", "🌐 공개 답변"); pubBtn.type = "button";
+      const secBtn = el("button", "obm", "🔒 개인 답변"); secBtn.type = "button";
+      modeRow.appendChild(pubBtn); modeRow.appendChild(secBtn);
+      const em = el("input"); em.type = "email"; em.placeholder = "답변받을 이메일 (공개는 선택)";
+      const help = el("div", "ob-help", "공개 답변은 ‘질의응답’ 섹션에 올라옵니다.");
+      const setMode = (m) => {
+        mode = m;
+        pubBtn.classList.toggle("on", m === "public"); secBtn.classList.toggle("on", m === "private");
+        em.placeholder = m === "private" ? "답변받을 이메일 (개인은 필수)" : "답변받을 이메일 (공개는 선택)";
+        help.textContent = m === "private" ? "개인 답변은 이메일로만 보내드려요. 이메일을 꼭 입력해 주세요." : "공개 답변은 ‘질의응답’ 섹션에 올라옵니다.";
+      };
+      pubBtn.addEventListener("click", () => setMode("public"));
+      secBtn.addEventListener("click", () => setMode("private"));
       const actions = el("div", "ob-actions");
       const cancel = el("button", "ghost", "취소");
       const send = el("button", null, "✉️ 보내기");
       actions.appendChild(cancel); actions.appendChild(send);
-      box.appendChild(em); box.appendChild(actions);
+      box.appendChild(modeRow); box.appendChild(em); box.appendChild(help); box.appendChild(actions);
       wrap.appendChild(box);
       $("chatLog").appendChild(wrap);
       wrap.scrollIntoView({ block: "nearest" });
@@ -494,16 +508,23 @@
       cancel.addEventListener("click", () => { wrap.remove(); });
       send.addEventListener("click", async () => {
         const email = em.value.trim();
+        if (mode === "private" && !email) { em.focus(); this.bot("개인 답변을 받으시려면 이메일을 꼭 입력해 주세요. (또는 ‘공개 답변’을 선택하세요)", null); return; }
         if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { em.focus(); this.bot("이메일 형식을 확인해 주세요.", null); return; }
         send.disabled = true; send.textContent = "보내는 중…";
-        const ok = await this.sendQuestion(q, email);
+        const ok = await this.sendQuestion(q, email, mode);
         box.remove();
         if (ok === "mail") { this.bot("메일 앱을 열었어요. 전송 버튼을 눌러야 전달됩니다. ✉️", qaChips(4)); }
-        else if (ok) { this.bot("질문이 안경희 박사에게 전달되었어요. 감사합니다! 🙏" + (email ? "\n남겨주신 이메일(" + esc(email) + ")로 답변드리겠습니다." : ""), qaChips(4)); }
+        else if (ok) {
+          this.bot(mode === "private"
+            ? "질문이 전달되었어요! 남겨주신 이메일(" + esc(email) + ")로 답변드리겠습니다. 🙏"
+            : "질문이 전달되었어요! 답변은 ‘질의응답’ 섹션에 공개로 올라옵니다. 잠시 후 확인해 주세요. 🙏", qaChips(4));
+        }
         else { this.bot("전송에 실패했어요. 잠시 후 다시 시도해 주세요.", qaChips(4)); }
       });
     },
-    async sendQuestion(q, email) {
+    async sendQuestion(q, email, mode) {
+      const kind = mode === "private" ? "개인 답변(이메일 회신)" : "공개 답변(사이트 게시)";
+      const tag = mode === "private" ? "[개인]" : "[공개]";
       if (P.ownerFormKey) {   // web3forms: 서버가 이메일로 전송(이메일 주소 비공개)
         try {
           const res = await fetch("https://api.web3forms.com/submit", {
@@ -511,9 +532,10 @@
             headers: { "Content-Type": "application/json", "Accept": "application/json" },
             body: JSON.stringify({
               access_key: P.ownerFormKey,
-              subject: "[안경희 소개 챗봇] 방문자 질문",
+              subject: "[안경희 소개 챗봇] " + tag + " 방문자 질문",
               from_name: "안경희 소개 챗봇",
               "질문": q,
+              "답변 방식": kind,
               "답변받을 이메일": email || "(미입력)"
             })
           });
@@ -522,8 +544,8 @@
         } catch (e) { return false; }
       }
       if (P.ownerEmail) {     // 폴백: 방문자 메일 앱 열기
-        const body = encodeURIComponent("질문:\n" + q + "\n\n답변받을 이메일: " + (email || "(미입력)"));
-        window.location.href = "mailto:" + P.ownerEmail + "?subject=" + encodeURIComponent("[소개 챗봇] 방문자 질문") + "&body=" + body;
+        const body = encodeURIComponent("질문:\n" + q + "\n\n답변 방식: " + kind + "\n답변받을 이메일: " + (email || "(미입력)"));
+        window.location.href = "mailto:" + P.ownerEmail + "?subject=" + encodeURIComponent("[소개 챗봇] " + tag + " 방문자 질문") + "&body=" + body;
         return "mail";
       }
       return false;
@@ -549,17 +571,42 @@
         });
       }
     }
+    // 공개/개인 답변 선택
+    let qnaMode = "public";
+    const modeBox = $("qnaMode"), hint = $("qnaHint"), emailInput = $("qnaEmail");
+    if (modeBox) {
+      modeBox.querySelectorAll(".qmode").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          qnaMode = btn.getAttribute("data-mode");
+          modeBox.querySelectorAll(".qmode").forEach((b) => b.classList.toggle("on", b === btn));
+          if (qnaMode === "private") {
+            emailInput.placeholder = "답변받을 이메일 (개인 답변은 필수)";
+            if (hint) hint.textContent = "개인 답변은 남겨주신 이메일로만 보내드립니다. 이메일을 꼭 입력해 주세요.";
+          } else {
+            emailInput.placeholder = "답변받을 이메일 (공개 답변은 선택)";
+            if (hint) hint.textContent = "공개 답변은 질의응답 섹션에 올라옵니다. 알림을 원하시면 이메일을 남겨주세요.";
+          }
+        });
+      });
+    }
     const sendBtn = $("qnaSend");
     if (sendBtn) {
       sendBtn.addEventListener("click", async () => {
         const q = $("qnaQ").value.trim(), email = $("qnaEmail").value.trim(), msg = $("qnaMsg");
         if (!q) { $("qnaQ").focus(); return; }
+        if (qnaMode === "private" && !email) { msg.className = "qna-msg err"; msg.textContent = "개인 답변을 받으시려면 이메일을 꼭 입력해 주세요. (또는 ‘공개 답변’을 선택하세요)"; emailInput.focus(); return; }
         if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { msg.className = "qna-msg err"; msg.textContent = "이메일 형식을 확인해 주세요."; return; }
         sendBtn.disabled = true; const orig = sendBtn.textContent; sendBtn.textContent = "보내는 중…";
-        const ok = await Chat.sendQuestion(q, email);
+        const ok = await Chat.sendQuestion(q, email, qnaMode);
         sendBtn.disabled = false; sendBtn.textContent = orig;
         if (ok === "mail") { msg.className = "qna-msg ok"; msg.textContent = "메일 앱을 열었어요. 전송을 눌러야 전달됩니다. ✉️"; }
-        else if (ok) { msg.className = "qna-msg ok"; msg.textContent = "질문이 전달되었어요. 감사합니다! 🙏" + (email ? " 남겨주신 이메일로 답장드리겠습니다." : ""); $("qnaQ").value = ""; $("qnaEmail").value = ""; }
+        else if (ok) {
+          msg.className = "qna-msg ok";
+          msg.textContent = qnaMode === "private"
+            ? "질문이 전달되었어요! 남겨주신 이메일로 답변드리겠습니다. 🙏"
+            : "질문이 전달되었어요! 답변은 이 ‘질의응답’ 섹션에 공개로 올라옵니다. 잠시 후 확인해 주세요. 🙏";
+          $("qnaQ").value = ""; $("qnaEmail").value = "";
+        }
         else { msg.className = "qna-msg err"; msg.textContent = "전송에 실패했어요. 잠시 후 다시 시도해 주세요."; }
       });
     }

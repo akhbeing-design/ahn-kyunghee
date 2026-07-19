@@ -185,10 +185,15 @@
       </div>
       <div class="qna-ask reveal">
         <textarea id="qnaQ" placeholder="궁금한 점을 자유롭게 적어주세요…" rows="3"></textarea>
+        <div class="qna-mode" id="qnaMode">
+          <button type="button" class="qmode on" data-mode="public">🌐 공개 답변 <small>질의응답에 게시돼요</small></button>
+          <button type="button" class="qmode" data-mode="private">🔒 개인 답변 <small>이메일로만 받아요</small></button>
+        </div>
         <div class="qna-ask-row">
-          <input id="qnaEmail" type="email" placeholder="답변받을 이메일 (선택)" />
+          <input id="qnaEmail" type="email" placeholder="답변받을 이메일 (공개 답변은 선택)" />
           <button class="btn btn-gold" id="qnaSend">질문 보내기</button>
         </div>
+        <div class="qna-hint" id="qnaHint">공개 답변은 질의응답 섹션에 올라옵니다. 알림을 원하시면 이메일을 남겨주세요.</div>
         <div class="qna-msg" id="qnaMsg"></div>
       </div>
       <div class="qna-list reveal" id="qnaList"></div>
