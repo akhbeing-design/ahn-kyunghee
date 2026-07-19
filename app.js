@@ -102,7 +102,11 @@
     const dl = $("pdfDl");
     if (dl) {
       if (b.pdf) {
+        const PIN = String(b.downloadPin || "1111");   // 다운로드 비밀번호(data.js book.downloadPin 로 변경 가능)
         dl.addEventListener("click", () => {
+          const pw = prompt("본문 PDF 다운로드 — 비밀번호 4자리를 입력하세요.");
+          if (pw === null) return;                      // 취소
+          if (pw.trim() !== PIN) { alert("비밀번호가 올바르지 않습니다."); return; }
           const a = el("a");
           a.href = encodeURI(b.pdf);
           a.download = "깨진유리창과 시장의 배신 - 본문.pdf";
@@ -324,6 +328,7 @@
       case "study": { const n = ((P.study && P.study.videos ? P.study.videos.length : 0) + (window.STUDY_VIDEOS ? window.STUDY_VIDEOS.length : 0)); return { text: (P.study ? P.study.title + "(" + P.study.short + ") — " + P.study.desc : "경제스터디") + (n ? "\n\n위쪽 ‘안경스’ 섹션에서 영상을 보실 수 있어요." : "\n\n곧 영상이 올라올 예정이에요. 위쪽 ‘안경스’ 섹션을 확인해 주세요."), chips: qaChips(5) }; }
       case "browse": return { text: "어떤 주제가 궁금하세요? 아래에서 골라보셔도 좋아요.", chips: MENU };
       case "admin": return adminList();
+      case "adminClear": Store.set(PENDING, []); return { text: "받은 질문을 모두 비웠어요. 🗑", chips: qaChips(4) };
     }
     return null;
   }
@@ -368,7 +373,8 @@
     const p = getPending();
     if (!p.length) return { text: "받은(미답변) 질문이 없어요. 🙂", chips: qaChips(4) };
     const chips = p.map((it, i) => ["✍️ " + it.q.slice(0, 18) + (it.q.length > 18 ? "…" : ""), "ownerAnswer::" + encodeURIComponent(it.q)]);
-    return { text: "받은 질문 " + p.length + "개예요. 답변할 질문을 누르세요.", chips: chips };
+    chips.push(["🗑 전체 비우기", "adminClear"]);
+    return { text: "받은 질문 " + p.length + "개예요. 답변할 질문을 누르세요.\n(질문을 누르면 답변 입력·삭제를 할 수 있어요.)", chips: chips };
   }
 
   const cleanLabel = (s) => s.replace(/^[^가-힣a-zA-Z0-9]+\s*/, "");
@@ -441,15 +447,22 @@
       const box = el("div", "owner-box");
       const ta = el("textarea"); ta.placeholder = "이 질문에 대한 답변을 입력하세요…";
       const actions = el("div", "ob-actions");
+      const del = el("button", "ghost", "🗑 질문 삭제");
       const cancel = el("button", "ghost", "취소");
       const save = el("button", null, "답변 저장");
-      actions.appendChild(cancel); actions.appendChild(save);
+      actions.appendChild(del); actions.appendChild(cancel); actions.appendChild(save);
       box.appendChild(ta); box.appendChild(actions);
       wrap.appendChild(box);
       $("chatLog").appendChild(wrap);
       wrap.scrollIntoView({ block: "nearest" });   // 입력창이 보이도록
       setTimeout(() => ta.focus(), 100);
       cancel.addEventListener("click", () => { wrap.remove(); });
+      del.addEventListener("click", () => {
+        Store.set(PENDING, getPending().filter((it) => it.q !== q));   // 받은 질문함에서 삭제
+        wrap.remove();
+        this.bot("질문을 삭제했어요. 🗑", null);
+        const r = adminList(); this.bot(r.text, r.chips);
+      });
       save.addEventListener("click", () => {
         const ans = ta.value.trim(); if (!ans) { ta.focus(); return; }
         // 학습: 다음에 같은 질문엔 자동 응답
