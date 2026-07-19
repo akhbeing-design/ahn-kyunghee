@@ -676,11 +676,31 @@
     });
 
     // 관리자 로그인/로그아웃
+    async function ownerSignIn() {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      try {
+        await auth.signInWithPopup(provider);
+      } catch (e) {
+        if (e.code === "auth/popup-blocked" || e.code === "auth/cancelled-popup-request" || e.code === "auth/operation-not-supported-in-this-environment") {
+          try { await auth.signInWithRedirect(provider); return; } catch (e2) { showLoginErr(e2); return; }
+        }
+        showLoginErr(e);
+      }
+    }
+    function showLoginErr(e) {
+      let m = e.code || e.message || "알 수 없는 오류";
+      if (e.code === "auth/unauthorized-domain") m = "이 사이트 도메인이 Firebase에 등록되지 않았어요 → 승인된 도메인에 'akhbeing-design.github.io' 추가가 필요합니다.";
+      else if (e.code === "auth/popup-blocked") m = "브라우저가 팝업을 막았어요. 팝업을 허용하고 다시 시도해 주세요.";
+      else if (e.code === "auth/popup-closed-by-user") m = "로그인 창이 닫혔어요. 다시 시도해 주세요.";
+      if (adminState) adminState.textContent = "로그인 실패: " + m;
+      console.warn("[qna login]", e);
+    }
     if (adminBtn) adminBtn.addEventListener("click", async () => {
       if (auth.currentUser) { await auth.signOut(); return; }
-      try { await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
-      catch (e) { adminState.textContent = "로그인 취소/실패"; console.warn(e); }
+      if (adminState) adminState.textContent = "로그인 창을 여는 중…";
+      ownerSignIn();
     });
+    auth.getRedirectResult().catch(showLoginErr);   // 리다이렉트 로그인 결과 처리
     auth.onAuthStateChanged(async (user) => {
       isOwner = !!(user && user.email === OWNER);
       if (adminState) adminState.textContent = user ? (isOwner ? "관리자 모드: " + user.email : "권한 없음 (" + user.email + ")") : "";
