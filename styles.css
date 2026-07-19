@@ -440,6 +440,7 @@ a { color: inherit; text-decoration: none; }
 .qna-ops button:hover { background: var(--gold-soft); }
 .qna-ops button.ghost { background: transparent; color: var(--ink-soft); border: 1px solid var(--line); }
 .qna-ops button.ghost:hover { background: var(--ivory); color: var(--navy-900); }
+.qna-ops button.danger { background: #c0392b; color: #fff; border-color: #c0392b; }
 /* 페이지네이션 */
 .qna-pager { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 30px; }
 .qna-pager .qp { min-width: 38px; padding: 8px 12px; border: 1px solid var(--line); background: var(--paper); color: var(--ink-soft); border-radius: 8px; font: 600 14px var(--sans); cursor: pointer; transition: background .15s, color .15s, border-color .15s; }

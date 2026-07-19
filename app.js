@@ -572,6 +572,44 @@
     const fmt = (ts) => { try { const d = ts && ts.toDate ? ts.toDate() : null; return d ? d.getFullYear() + "." + (d.getMonth() + 1) + "." + d.getDate() : ""; } catch (e) { return ""; } };
     const secOf = (ts) => (ts && ts.seconds) ? ts.seconds : 0;
 
+    // ── 주인 편집 도구 (질문/답변 수정, 삭제) ──
+    function editText(displayEl, current, onSave, rows) {
+      const ta = el("textarea", "qna-ans"); ta.value = current; if (rows) ta.rows = rows;
+      const ops = el("div", "qna-ops");
+      const save = el("button", null, "저장"); const cancel = el("button", "ghost", "취소");
+      ops.appendChild(save); ops.appendChild(cancel);
+      const box = el("div"); box.appendChild(ta); box.appendChild(ops);
+      const prev = displayEl;
+      const placeholder = el("div"); prev.replaceWith(placeholder); placeholder.replaceWith(box);
+      setTimeout(() => ta.focus(), 50);
+      cancel.addEventListener("click", () => box.replaceWith(prev));
+      save.addEventListener("click", async () => {
+        const v = ta.value.trim(); if (!v) { ta.focus(); return; }
+        save.disabled = true; save.textContent = "저장 중…";
+        try { await onSave(v); await reloadAll(); }
+        catch (e) { save.disabled = false; save.textContent = "저장"; alert("저장 실패: " + (e.code || e.message)); }
+      });
+    }
+    function delButton(id) {
+      const b = el("button", "ghost", "삭제");
+      let armed = false;
+      b.addEventListener("click", async () => {
+        if (!armed) { armed = true; b.textContent = "정말 삭제? (한 번 더)"; b.classList.add("danger"); setTimeout(() => { if (armed) { armed = false; b.textContent = "삭제"; b.classList.remove("danger"); } }, 3500); return; }
+        b.disabled = true; b.textContent = "삭제 중…";
+        try { await COL().doc(id).delete(); await reloadAll(); }
+        catch (e) { b.disabled = false; b.textContent = "삭제"; b.classList.remove("danger"); armed = false; alert("삭제 실패: " + (e.code || e.message)); }
+      });
+      return b;
+    }
+    function ownerOps(it, qEl, aEl) {
+      const ops = el("div", "qna-ops");
+      const eq = el("button", "ghost", "질문 수정"); eq.addEventListener("click", () => editText(qEl, it.q, (v) => COL().doc(it.id).update({ q: v })));
+      ops.appendChild(eq);
+      if (aEl) { const ea = el("button", "ghost", "답변 수정"); ea.addEventListener("click", () => editText(aEl, it.answer, (v) => COL().doc(it.id).update({ answer: v }), 3)); ops.appendChild(ea); }
+      ops.appendChild(delButton(it.id));
+      return ops;
+    }
+
     function renderBoard() {
       listEl.innerHTML = "";
       if (!published.length) { listEl.appendChild(el("div", "qna-empty", "아직 공개된 질의응답이 없습니다. 위에서 첫 질문을 남겨보세요. 🙂")); pagerEl.innerHTML = ""; return; }
@@ -583,20 +621,7 @@
         const a = el("div", "qna-a"); a.innerHTML = "<b>A.</b> " + esc(it.answer).replace(/\n/g, "<br>");
         if (it.answeredAt) a.appendChild(el("div", "qna-date", fmt(it.answeredAt)));
         card.appendChild(q); card.appendChild(a);
-        if (isOwner) {
-          const ops = el("div", "qna-ops");
-          const edit = el("button", "ghost", "수정"); const del = el("button", "ghost", "삭제");
-          ops.appendChild(edit); ops.appendChild(del); card.appendChild(ops);
-          edit.addEventListener("click", () => {
-            const ta = el("textarea", "qna-ans"); ta.value = it.answer;
-            const save = el("button", null, "저장"); const cancel = el("button", "ghost", "취소");
-            const box = el("div"); const r = el("div", "qna-ops"); r.appendChild(save); r.appendChild(cancel);
-            box.appendChild(ta); box.appendChild(r); a.replaceWith(box);
-            save.addEventListener("click", async () => { const v = ta.value.trim(); if (!v) return; save.disabled = true; try { await COL().doc(it.id).update({ answer: v }); await reloadAll(); } catch (e) { alert("저장 실패"); } });
-            cancel.addEventListener("click", () => renderBoard());
-          });
-          del.addEventListener("click", async () => { if (!confirm("이 질의응답을 삭제할까요?")) return; try { await COL().doc(it.id).delete(); await reloadAll(); } catch (e) { alert("삭제 실패"); } });
-        }
+        if (isOwner) card.appendChild(ownerOps(it, q, a));
         listEl.appendChild(card);
       });
       renderPager(pages);
@@ -628,8 +653,9 @@
         if (it.email) card.appendChild(el("div", "qna-mailto", "📧 " + esc(it.email)));
         const ta = el("textarea", "qna-ans"); ta.placeholder = "답변을 입력하세요… (게시하면 게시판에 공개됩니다)";
         const ops = el("div", "qna-ops");
-        const pub = el("button", null, "게시(공개)"); const del = el("button", "ghost", "삭제");
-        ops.appendChild(pub); ops.appendChild(del);
+        const pub = el("button", null, "게시(공개)");
+        const eq = el("button", "ghost", "질문 수정"); eq.addEventListener("click", () => editText(q, it.q, (v) => COL().doc(it.id).update({ q: v })));
+        ops.appendChild(pub); ops.appendChild(eq); ops.appendChild(delButton(it.id));
         card.appendChild(ta); card.appendChild(ops);
         pub.addEventListener("click", async () => {
           const v = ta.value.trim(); if (!v) { ta.focus(); return; }
@@ -637,9 +663,8 @@
           try {
             await COL().doc(it.id).update({ answer: v, status: "published", answeredAt: firebase.firestore.FieldValue.serverTimestamp(), email: firebase.firestore.FieldValue.delete() });
             await reloadAll();
-          } catch (e) { pub.disabled = false; pub.textContent = "게시(공개)"; alert("게시 실패: " + e.message); }
+          } catch (e) { pub.disabled = false; pub.textContent = "게시(공개)"; alert("게시 실패: " + (e.code || e.message)); }
         });
-        del.addEventListener("click", async () => { if (!confirm("이 질문을 삭제할까요?")) return; try { await COL().doc(it.id).delete(); await reloadAll(); } catch (e) { alert("삭제 실패"); } });
         adminEl.appendChild(card);
       });
     }
