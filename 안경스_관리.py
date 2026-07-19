@@ -13,7 +13,9 @@ REPO = os.path.dirname(os.path.abspath(__file__))
 VIDEOS_JS = os.path.join(REPO, "videos.js")
 HEADER = ('/* 안경스(안박사의 경제스터디) 게시 영상 목록\n'
           '   ── 이 파일은 "안경스_관리" 도구가 자동으로 고쳐서 GitHub에 올립니다.\n'
-          '      손으로 고쳐도 되지만, 형식(JSON 배열)을 지켜주세요. */\n')
+          '      손으로 고쳐도 되지만, 형식(JSON 배열)을 지켜주세요.\n'
+          '      · 유튜브:   { "url": "https://youtu.be/영상ID", "title": "제목" }\n'
+          '      · 올린파일: { "file": "videos/파일명.mp4", "title": "제목" } */\n')
 
 YT_RE = re.compile(r'(?:youtu\.be/|[?&]v=|shorts/|embed/|live/)([A-Za-z0-9_-]{11})')
 
@@ -37,7 +39,10 @@ def read_videos():
 def write_videos(vids):
     clean = []
     for v in vids:
-        vid = ytid(v.get("url") or v.get("id"))
+        if v.get("file"):                                   # 사이트에 올린 동영상 파일
+            clean.append({"file": v["file"], "title": (v.get("title") or "").strip()})
+            continue
+        vid = ytid(v.get("url") or v.get("id"))             # 유튜브 링크
         if not vid:
             continue
         clean.append({"url": "https://youtu.be/" + vid, "title": (v.get("title") or "").strip()})
@@ -45,6 +50,25 @@ def write_videos(vids):
     with open(VIDEOS_JS, "w", encoding="utf-8") as f:
         f.write(body)
     return clean
+
+VIDEOS_DIR = os.path.join(REPO, "videos")
+
+def safe_name(name):
+    base = os.path.basename(name or "")
+    stem, ext = os.path.splitext(base)
+    ext = "." + re.sub(r'[^A-Za-z0-9]', '', ext).lower() if ext else ".mp4"
+    stem = re.sub(r'[^A-Za-z0-9_-]', '', stem) or "video"
+    os.makedirs(VIDEOS_DIR, exist_ok=True)
+    cand, i = stem + ext, 1
+    while os.path.exists(os.path.join(VIDEOS_DIR, cand)):
+        cand = "%s-%d%s" % (stem, i, ext); i += 1
+    return cand
+
+def save_upload(name, raw):
+    fn = safe_name(name)
+    with open(os.path.join(VIDEOS_DIR, fn), "wb") as f:
+        f.write(raw)
+    return "videos/" + fn
 
 def git(*args):
     p = subprocess.run(["git", "-C", REPO] + list(args),
@@ -54,6 +78,8 @@ def git(*args):
 def publish(vids):
     clean = write_videos(vids)
     git("add", "videos.js")
+    if os.path.isdir(VIDEOS_DIR):
+        git("add", "videos")
     code, out = git("commit", "-m", "안경스 영상 업데이트")
     committed = (code == 0)
     if not committed and "nothing to commit" not in out and "변경 사항 없음" not in out and "no changes" not in out:
@@ -99,6 +125,10 @@ PAGE = r"""<!DOCTYPE html>
   .vid .ops{display:flex;flex-direction:column;gap:5px}
   .vid .ops button{padding:5px 9px;font-size:12px;background:#fff;border:1px solid var(--line);color:var(--soft)}
   .vid .ops .del:hover{background:#c0392b;color:#fff;border-color:#c0392b}
+  .vid .thumbph{width:120px;height:68px;border-radius:7px;flex:none;background:#12233f;color:var(--gold2);display:flex;align-items:center;justify-content:center;font-size:24px}
+  .filebtn{display:inline-flex;align-items:center;gap:6px;background:var(--gold);color:#241a06;padding:11px 18px;border-radius:9px;cursor:pointer;font-size:14px;font-weight:600}
+  .filebtn:hover{background:var(--gold2)}
+  .filebtn input{display:none}
   .empty{color:var(--soft);font-size:14px;text-align:center;padding:26px;border:1px dashed var(--line);border-radius:11px}
   .note{font-size:12.5px;color:var(--soft);margin-top:10px}
   #status{margin-top:14px;padding:13px 15px;border-radius:9px;font-size:14px;white-space:pre-wrap;display:none}
@@ -117,7 +147,11 @@ PAGE = r"""<!DOCTYPE html>
         <input id="t" type="text" placeholder="제목 (선택)" style="max-width:240px">
         <button class="add" onclick="add()">추가</button>
       </div>
-      <div class="note">유튜브에 <b>일부공개(unlisted)</b> 또는 공개로 올린 뒤 그 링크를 붙여넣으세요. 제목은 나중에 목록에서 바로 고칠 수 있어요.</div>
+      <div class="row" style="margin-top:10px;align-items:center">
+        <label class="filebtn">🎬 동영상 파일 올리기<input id="f" type="file" accept="video/*" onchange="uploadFile(this)"></label>
+        <span id="upmsg" class="note" style="margin:0">PC 동영상 파일을 사이트에 직접 올립니다. (용량 큰 영상은 유튜브 링크를 권장)</span>
+      </div>
+      <div class="note">유튜브: <b>일부공개(unlisted)</b>/공개로 올린 뒤 링크를 붙여넣기. 제목은 목록에서 바로 고칠 수 있어요.</div>
     </div>
     <div class="card">
       <h2>📺 게시할 영상 목록 <span id="cnt" style="color:var(--soft);font-weight:400"></span></h2>
@@ -139,11 +173,14 @@ function render(){
   document.getElementById('cnt').textContent = vids.length?('· '+vids.length+'개'):'';
   if(!vids.length){ L.innerHTML='<div class="empty">아직 영상이 없습니다. 위에서 유튜브 링크를 추가해 보세요.</div>'; return; }
   vids.forEach((v,i)=>{
-    const id=ytid(v.url); const d=document.createElement('div'); d.className='vid';
-    d.innerHTML=`<img src="https://img.youtube.com/vi/${id}/mqdefault.jpg" alt="">
+    const d=document.createElement('div'); d.className='vid';
+    const thumb = v.file ? `<div class="thumbph">🎬</div>`
+                         : `<img src="https://img.youtube.com/vi/${ytid(v.url)}/mqdefault.jpg" alt="">`;
+    const sub = v.file ? ('올린 파일 · '+esc(v.file)) : esc(v.url);
+    d.innerHTML=`${thumb}
       <div class="meta">
         <input class="ttl" value="${esc(v.title)}" placeholder="제목 (선택)" oninput="vids[${i}].title=this.value">
-        <div class="u">${esc(v.url)}</div>
+        <div class="u">${sub}</div>
       </div>
       <div class="ops">
         <button onclick="mv(${i},-1)" ${i===0?'disabled':''}>▲</button>
@@ -160,6 +197,23 @@ function add(){
   vids.push({url:u,title:document.getElementById('t').value.trim()});
   document.getElementById('u').value=''; document.getElementById('t').value=''; render();
   setStatus('info','추가했습니다. 아래 [게시하기]를 눌러야 사이트에 반영돼요.');
+}
+function uploadFile(inp){
+  const f=inp.files&&inp.files[0]; if(!f) return;
+  const um=document.getElementById('upmsg');
+  um.textContent='올리는 중… '+f.name+' ('+Math.round(f.size/1048576)+'MB)';
+  const rd=new FileReader();
+  rd.onload=async()=>{
+    try{
+      const b64=String(rd.result).split(',')[1];
+      const r=await fetch('/upload',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:f.name,data:b64})});
+      const j=await r.json();
+      if(j.ok){ vids.push({file:j.file,title:f.name.replace(/\.[^.]+$/,'')}); render(); um.textContent='파일 추가됨: '+j.file+' — 아래 [게시하기]를 눌러 반영하세요.'; }
+      else { um.textContent='업로드 실패: '+(j.msg||''); }
+    }catch(e){ um.textContent='업로드 오류: '+e; }
+    inp.value='';
+  };
+  rd.readAsDataURL(f);
 }
 function del(i){ vids.splice(i,1); render(); }
 function mv(i,dir){ const j=i+dir; if(j<0||j>=vids.length) return; [vids[i],vids[j]]=[vids[j],vids[i]]; render(); }
@@ -194,13 +248,28 @@ class H(http.server.BaseHTTPRequestHandler):
             self._send(200, page)
         else:
             self._send(404, "not found")
+    def _read_body(self):
+        n = int(self.headers.get("Content-Length", 0))
+        buf = b""
+        while len(buf) < n:
+            chunk = self.rfile.read(min(65536, n - len(buf)))
+            if not chunk:
+                break
+            buf += chunk
+        return buf
     def do_POST(self):
-        if self.path != "/publish":
-            self._send(404, "not found"); return
         try:
-            n = int(self.headers.get("Content-Length", 0))
-            vids = json.loads(self.rfile.read(n).decode("utf-8"))
-            result = publish(vids)
+            if self.path == "/publish":
+                vids = json.loads(self._read_body().decode("utf-8"))
+                result = publish(vids)
+            elif self.path == "/upload":
+                import base64
+                data = json.loads(self._read_body().decode("utf-8"))
+                raw = base64.b64decode(data["data"])
+                path = save_upload(data.get("name", "video.mp4"), raw)
+                result = {"ok": True, "file": path}
+            else:
+                self._send(404, "not found"); return
         except Exception as e:
             result = {"ok": False, "msg": "오류: " + str(e)}
         self._send(200, json.dumps(result, ensure_ascii=False), "application/json; charset=utf-8")

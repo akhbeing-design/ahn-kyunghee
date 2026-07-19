@@ -219,6 +219,9 @@
       ifr.setAttribute("allowfullscreen", "");
       openLB(ifr);
     }
+    function playFile(src) {
+      const v = el("video"); v.src = src; v.controls = true; v.autoplay = true; openLB(v);
+    }
     function ytCard(id, title) {
       const card = el("div", "yt-card");
       const thumb = el("div", "yt-thumb");
@@ -229,9 +232,23 @@
       if (title) card.appendChild(el("div", "yt-title", esc(title)));
       return card;
     }
+    function fileCard(src, title) {
+      const card = el("div", "yt-card");
+      const thumb = el("div", "yt-thumb file");
+      const pv = el("video"); pv.src = src; pv.preload = "metadata"; pv.muted = true; pv.playsInline = true; thumb.appendChild(pv);
+      thumb.appendChild(el("div", "yt-play", "▶"));
+      thumb.addEventListener("click", () => playFile(src));
+      card.appendChild(thumb);
+      card.appendChild(el("div", "yt-title", esc(title || "동영상")));
+      return card;
+    }
     const seen = new Set();
-    published.forEach((v) => { const id = ytid(v.url || v.id); if (id && !seen.has(id)) { seen.add(id); grid.appendChild(ytCard(id, v.title)); } });
-    if (!grid.children.length) grid.appendChild(el("div", "study-empty", '아직 등록된 영상이 없습니다. <b>안경스_관리</b> 도구에서 유튜브 링크를 추가·게시하면 여기에 표시됩니다.'));
+    published.forEach((v) => {
+      if (v.file) { grid.appendChild(fileCard(v.file, v.title)); return; }   // 사이트에 올린 파일
+      const id = ytid(v.url || v.id);                                        // 유튜브
+      if (id && !seen.has(id)) { seen.add(id); grid.appendChild(ytCard(id, v.title)); }
+    });
+    if (!grid.children.length) grid.appendChild(el("div", "study-empty", '아직 등록된 영상이 없습니다. <b>안경스_관리</b> 도구에서 영상을 추가·게시하면 여기에 표시됩니다.'));
   }
 
   /* ---------- 내비게이션 스크롤 효과 ---------- */
