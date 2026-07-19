@@ -391,6 +391,27 @@ a { color: inherit; text-decoration: none; }
 .chat-input button { background: var(--navy-800); color:#fff; border:none; border-radius: 10px; padding: 0 16px; cursor:pointer; font-size: 16px; }
 .chat-input button:hover { background: var(--navy-700); }
 
+/* ---------- 질의응답 ---------- */
+.qna-ask { margin-top: 36px; background: var(--paper); border: 1px solid var(--line); border-radius: 16px; padding: 24px; box-shadow: var(--shadow-sm); max-width: 720px; }
+.qna-ask textarea { width: 100%; border: 1px solid var(--line); border-radius: 10px; padding: 13px 15px; font-family: var(--sans); font-size: 15px; line-height: 1.7; resize: vertical; min-height: 84px; outline: none; }
+.qna-ask textarea:focus { border-color: var(--gold-soft); }
+.qna-ask-row { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+.qna-ask-row input { flex: 1; min-width: 200px; border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; font-family: var(--sans); font-size: 14px; outline: none; }
+.qna-ask-row input:focus { border-color: var(--gold-soft); }
+.qna-ask-row .btn { white-space: nowrap; }
+.qna-msg { margin-top: 12px; font-size: 14px; min-height: 1px; }
+.qna-msg.ok { color: #1c6b2b; }
+.qna-msg.err { color: #a5261c; }
+.qna-list { margin-top: 34px; display: flex; flex-direction: column; gap: 16px; }
+.qna-item { background: var(--paper); border: 1px solid var(--line); border-left: 3px solid var(--gold); border-radius: 12px; padding: 22px 24px; box-shadow: var(--shadow-sm); }
+.qna-q { font-family: var(--serif); font-size: 18px; font-weight: 700; color: var(--navy-900); line-height: 1.55; }
+.qna-q .qna-by { font-family: var(--sans); font-size: 13px; font-weight: 500; color: var(--ink-soft); }
+.qna-q b { color: var(--gold); margin-right: 4px; }
+.qna-a { margin-top: 12px; font-size: 15.5px; line-height: 1.9; color: var(--ink); }
+.qna-a b { color: var(--gold); margin-right: 4px; }
+.qna-date { margin-top: 10px; font-size: 12.5px; color: var(--ink-soft); }
+.qna-empty { color: var(--ink-soft); font-size: 15px; text-align: center; padding: 40px 20px; border: 1px dashed var(--line); border-radius: 14px; background: var(--ivory); }
+
 /* ---------- 진입 애니메이션 ---------- */
 .reveal { opacity: 0; transform: translateY(28px); transition: opacity .7s ease, transform .7s ease; }
 .reveal.in { opacity: 1; transform: none; }

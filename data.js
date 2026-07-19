@@ -428,10 +428,10 @@ const PROFILE = {
   // ownerEmail 을 채우면 챗봇이 못 답한 질문을 이메일로 보내는 버튼이 생깁니다.
   // 비워두면(""), 질문은 페이지 안 '받은 질문함'에만 저장됩니다(이메일 비공개 유지).
   ownerName: "안경희",
-  ownerEmail: "akh.being@daum.net",
-  // 방문자 질문을 이메일로 자동 전송(이메일 주소는 화면에 노출 안 됨). web3forms.com 무료 액세스 키를 넣으세요.
+  ownerEmail: "akh.being@gmail.com",
+  // 방문자 질문을 이메일로 자동 전송(이메일 주소는 화면에 노출 안 됨). web3forms.com 무료 액세스 키.
   // 키를 비워두면(""), 방문자의 메일 앱을 여는 방식(mailto)으로 대체 동작합니다.
-  ownerFormKey: "",
+  ownerFormKey: "4945f515-e4ae-42bb-8ecd-7085cad2a354",
 
   // ── 챗봇: 예시 질문 & 답변 (자유 질문도 tags로 매칭) ─────
   // 새 Q&A를 추가하려면 { q, a, tags:[검색어들] } 를 더 넣으면 됩니다.

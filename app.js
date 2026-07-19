@@ -531,6 +531,40 @@
   };
   window.Chat = Chat;
 
+  /* ---------- 질의응답 섹션 (공개 Q&A 표시 + 질문 보내기) ---------- */
+  {
+    const list = $("qnaList");
+    if (list) {
+      const items = (window.QNA || []).filter((x) => x && x.q && x.a);
+      if (!items.length) {
+        list.appendChild(el("div", "qna-empty", "아직 공개된 질의응답이 없습니다. 위에서 첫 질문을 남겨보세요. 🙂"));
+      } else {
+        items.forEach((it) => {
+          const card = el("div", "qna-item");
+          const q = el("div", "qna-q"); q.innerHTML = "<b>Q.</b> " + esc(it.q) + (it.by ? " <span class=\"qna-by\">— " + esc(it.by) + "</span>" : "");
+          const a = el("div", "qna-a"); a.innerHTML = "<b>A.</b> " + esc(it.a).replace(/\n/g, "<br>");
+          if (it.date) a.appendChild(el("div", "qna-date", esc(it.date)));
+          card.appendChild(q); card.appendChild(a);
+          list.appendChild(card);
+        });
+      }
+    }
+    const sendBtn = $("qnaSend");
+    if (sendBtn) {
+      sendBtn.addEventListener("click", async () => {
+        const q = $("qnaQ").value.trim(), email = $("qnaEmail").value.trim(), msg = $("qnaMsg");
+        if (!q) { $("qnaQ").focus(); return; }
+        if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { msg.className = "qna-msg err"; msg.textContent = "이메일 형식을 확인해 주세요."; return; }
+        sendBtn.disabled = true; const orig = sendBtn.textContent; sendBtn.textContent = "보내는 중…";
+        const ok = await Chat.sendQuestion(q, email);
+        sendBtn.disabled = false; sendBtn.textContent = orig;
+        if (ok === "mail") { msg.className = "qna-msg ok"; msg.textContent = "메일 앱을 열었어요. 전송을 눌러야 전달됩니다. ✉️"; }
+        else if (ok) { msg.className = "qna-msg ok"; msg.textContent = "질문이 전달되었어요. 감사합니다! 🙏" + (email ? " 남겨주신 이메일로 답장드리겠습니다." : ""); $("qnaQ").value = ""; $("qnaEmail").value = ""; }
+        else { msg.className = "qna-msg err"; msg.textContent = "전송에 실패했어요. 잠시 후 다시 시도해 주세요."; }
+      });
+    }
+  }
+
   $("cbtn").addEventListener("click", () => Chat.toggle());
   $("chatSend").addEventListener("click", () => Chat.send());
   $("chatText").addEventListener("keydown", (e) => { if (e.key === "Enter") Chat.send(); });

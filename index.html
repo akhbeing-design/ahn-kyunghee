@@ -27,6 +27,7 @@
         <a href="#book">저서</a>
         <a href="#study">안경스</a>
         <a href="#teaching">강의·연구</a>
+        <a href="#qna">질의응답</a>
       </div>
       <button class="navtoggle" id="navToggle" aria-label="메뉴 열기" aria-expanded="false">
         <span></span><span></span><span></span>
@@ -174,6 +175,26 @@
     </div>
   </section>
 
+  <!-- 질의응답 -->
+  <section class="section alt" id="qna">
+    <div class="wrap">
+      <div class="reveal">
+        <span class="eyebrow">Q &amp; A</span>
+        <h2 class="section-title">질의응답</h2>
+        <p class="section-lead">안경희 박사에게 궁금한 점을 남겨보세요. 답변받을 이메일을 남기시면 직접 답장드리고, 공개로 답변된 질문은 아래에 모입니다.</p>
+      </div>
+      <div class="qna-ask reveal">
+        <textarea id="qnaQ" placeholder="궁금한 점을 자유롭게 적어주세요…" rows="3"></textarea>
+        <div class="qna-ask-row">
+          <input id="qnaEmail" type="email" placeholder="답변받을 이메일 (선택)" />
+          <button class="btn btn-gold" id="qnaSend">질문 보내기</button>
+        </div>
+        <div class="qna-msg" id="qnaMsg"></div>
+      </div>
+      <div class="qna-list reveal" id="qnaList"></div>
+    </div>
+  </section>
+
   <!-- 푸터 -->
   <footer class="footer">
     <div class="wrap">
@@ -211,6 +232,7 @@
 
   <script src="data.js"></script>
   <script src="videos.js"></script>
+  <script src="qna.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
