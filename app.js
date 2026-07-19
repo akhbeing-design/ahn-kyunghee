@@ -417,7 +417,7 @@
     },
     pick(label, intent) {
       if (intent.indexOf("ownerAnswer::") === 0) { this.showOwnerInput(decodeURIComponent(intent.slice(13))); return; }
-      if (intent.indexOf("forward::") === 0) { this.forward(decodeURIComponent(intent.slice(9))); return; }
+      if (intent.indexOf("forward::") === 0) { this.showForward(decodeURIComponent(intent.slice(9))); return; }
       this.reset();                    // 소개멘트+질문 맨 위 유지, 이전 Q&A는 정리
       this.user(cleanLabel(label));
       const r = respond(intent) || { text: FALLBACK_INTRO, chips: null };
@@ -434,11 +434,12 @@
       else { this.fallbackFlow(t); }
     },
     fallbackFlow(q) {
-      // 질문을 '받은 질문함'에 저장
+      // 질문을 '받은 질문함'에 저장(이 브라우저 내). 실제 전달은 아래 이메일 버튼으로.
       const p = getPending(); if (!p.some((it) => it.q === q)) { p.push({ q: q, ts: Date.now() }); Store.set(PENDING, p); }
-      const chips = [["✍️ 주인이 직접 답변 입력", "ownerAnswer::" + encodeURIComponent(q)]];
-      if (P.ownerEmail) chips.push(["✉️ 주인에게 질문 보내기", "forward::" + encodeURIComponent(q)]);
+      const chips = [];
+      if (P.ownerFormKey || P.ownerEmail) chips.push(["✉️ 안경희 박사에게 질문 전달", "forward::" + encodeURIComponent(q)]);
       chips.push(["🔎 다른 질문 보기", "browse"]);
+      chips.push(["✍️ (주인) 직접 답변 입력", "ownerAnswer::" + encodeURIComponent(q)]);
       setTimeout(() => this.bot(FALLBACK_INTRO, chips), 280);
     },
     showOwnerInput(q) {
@@ -475,12 +476,57 @@
         this.bot("답변을 저장했어요. 앞으로 같은 질문에는 이 답변이 자동으로 표시됩니다. ✅", qaChips(4));
       });
     },
-    forward(q) {
-      if (!P.ownerEmail) { this.bot("아직 전달용 이메일이 설정되어 있지 않아요. data.js 의 ownerEmail 을 채우면 이 버튼으로 질문을 보낼 수 있어요.", qaChips(4)); return; }
-      const subject = encodeURIComponent("[소개 챗봇] 방문자 질문");
-      const body = encodeURIComponent("다음 질문에 답변이 필요합니다:\n\n" + q);
-      window.location.href = "mailto:" + P.ownerEmail + "?subject=" + subject + "&body=" + body;
-      this.bot("메일 앱을 열었어요. 전송하시면 주인에게 질문이 전달됩니다. ✉️", qaChips(4));
+    // 방문자 → 안경희 박사에게 질문 전달 (답변받을 이메일 선택 입력)
+    showForward(q) {
+      const wrap = el("div", "msg bot");
+      wrap.innerHTML = "<b>안경희 박사에게 질문 전달</b><br>질문: “" + esc(q) + "”";
+      const box = el("div", "owner-box");
+      const em = el("input"); em.type = "email"; em.placeholder = "답변받을 이메일 (선택) — 남기시면 직접 답장드립니다";
+      const actions = el("div", "ob-actions");
+      const cancel = el("button", "ghost", "취소");
+      const send = el("button", null, "✉️ 보내기");
+      actions.appendChild(cancel); actions.appendChild(send);
+      box.appendChild(em); box.appendChild(actions);
+      wrap.appendChild(box);
+      $("chatLog").appendChild(wrap);
+      wrap.scrollIntoView({ block: "nearest" });
+      setTimeout(() => em.focus(), 100);
+      cancel.addEventListener("click", () => { wrap.remove(); });
+      send.addEventListener("click", async () => {
+        const email = em.value.trim();
+        if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { em.focus(); this.bot("이메일 형식을 확인해 주세요.", null); return; }
+        send.disabled = true; send.textContent = "보내는 중…";
+        const ok = await this.sendQuestion(q, email);
+        box.remove();
+        if (ok === "mail") { this.bot("메일 앱을 열었어요. 전송 버튼을 눌러야 전달됩니다. ✉️", qaChips(4)); }
+        else if (ok) { this.bot("질문이 안경희 박사에게 전달되었어요. 감사합니다! 🙏" + (email ? "\n남겨주신 이메일(" + esc(email) + ")로 답변드리겠습니다." : ""), qaChips(4)); }
+        else { this.bot("전송에 실패했어요. 잠시 후 다시 시도해 주세요.", qaChips(4)); }
+      });
+    },
+    async sendQuestion(q, email) {
+      if (P.ownerFormKey) {   // web3forms: 서버가 이메일로 전송(이메일 주소 비공개)
+        try {
+          const res = await fetch("https://api.web3forms.com/submit", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Accept": "application/json" },
+            body: JSON.stringify({
+              access_key: P.ownerFormKey,
+              subject: "[안경희 소개 챗봇] 방문자 질문",
+              from_name: "안경희 소개 챗봇",
+              "질문": q,
+              "답변받을 이메일": email || "(미입력)"
+            })
+          });
+          const j = await res.json();
+          return !!j.success;
+        } catch (e) { return false; }
+      }
+      if (P.ownerEmail) {     // 폴백: 방문자 메일 앱 열기
+        const body = encodeURIComponent("질문:\n" + q + "\n\n답변받을 이메일: " + (email || "(미입력)"));
+        window.location.href = "mailto:" + P.ownerEmail + "?subject=" + encodeURIComponent("[소개 챗봇] 방문자 질문") + "&body=" + body;
+        return "mail";
+      }
+      return false;
     }
   };
   window.Chat = Chat;
