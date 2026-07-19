@@ -553,64 +553,142 @@
   };
   window.Chat = Chat;
 
-  /* ---------- 질의응답 섹션 (공개 Q&A 표시 + 질문 보내기) ---------- */
-  {
-    const list = $("qnaList");
-    if (list) {
-      const items = (window.QNA || []).filter((x) => x && x.q && x.a);
-      if (!items.length) {
-        list.appendChild(el("div", "qna-empty", "아직 공개된 질의응답이 없습니다. 위에서 첫 질문을 남겨보세요. 🙂"));
-      } else {
-        items.forEach((it) => {
-          const card = el("div", "qna-item");
-          const q = el("div", "qna-q"); q.innerHTML = "<b>Q.</b> " + esc(it.q) + (it.by ? " <span class=\"qna-by\">— " + esc(it.by) + "</span>" : "");
-          const a = el("div", "qna-a"); a.innerHTML = "<b>A.</b> " + esc(it.a).replace(/\n/g, "<br>");
-          if (it.date) a.appendChild(el("div", "qna-date", esc(it.date)));
-          card.appendChild(q); card.appendChild(a);
-          list.appendChild(card);
-        });
-      }
+  /* ---------- 질의응답 게시판 (Firebase Firestore) ---------- */
+  (function qnaBoard() {
+    const listEl = $("qnaList"), pagerEl = $("qnaPager"), msgEl = $("qnaMsg"),
+          adminEl = $("qnaAdmin"), adminBtn = $("qnaAdminBtn"), adminState = $("qnaAdminState");
+    if (!listEl) return;
+    const cfg = window.FIREBASE_CONFIG, OWNER = window.OWNER_EMAIL;
+    if (!cfg || !window.firebase) {
+      listEl.appendChild(el("div", "qna-empty", "게시판을 준비 중입니다. 잠시 후 다시 확인해 주세요."));
+      return;
     }
-    // 공개/개인 답변 선택
-    let qnaMode = "public";
-    const modeBox = $("qnaMode"), hint = $("qnaHint"), emailInput = $("qnaEmail");
-    if (modeBox) {
-      modeBox.querySelectorAll(".qmode").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          qnaMode = btn.getAttribute("data-mode");
-          modeBox.querySelectorAll(".qmode").forEach((b) => b.classList.toggle("on", b === btn));
-          if (qnaMode === "private") {
-            emailInput.placeholder = "답변받을 이메일 (개인 답변은 필수)";
-            if (hint) hint.textContent = "개인 답변은 남겨주신 이메일로만 보내드립니다. 이메일을 꼭 입력해 주세요.";
-          } else {
-            emailInput.placeholder = "답변받을 이메일 (공개 답변은 선택)";
-            if (hint) hint.textContent = "공개 답변은 질의응답 섹션에 올라옵니다. 알림을 원하시면 이메일을 남겨주세요.";
-          }
-        });
-      });
-    }
-    const sendBtn = $("qnaSend");
-    if (sendBtn) {
-      sendBtn.addEventListener("click", async () => {
-        const q = $("qnaQ").value.trim(), email = $("qnaEmail").value.trim(), msg = $("qnaMsg");
-        if (!q) { $("qnaQ").focus(); return; }
-        if (qnaMode === "private" && !email) { msg.className = "qna-msg err"; msg.textContent = "개인 답변을 받으시려면 이메일을 꼭 입력해 주세요. (또는 ‘공개 답변’을 선택하세요)"; emailInput.focus(); return; }
-        if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { msg.className = "qna-msg err"; msg.textContent = "이메일 형식을 확인해 주세요."; return; }
-        sendBtn.disabled = true; const orig = sendBtn.textContent; sendBtn.textContent = "보내는 중…";
-        const ok = await Chat.sendQuestion(q, email, qnaMode);
-        sendBtn.disabled = false; sendBtn.textContent = orig;
-        if (ok === "mail") { msg.className = "qna-msg ok"; msg.textContent = "메일 앱을 열었어요. 전송을 눌러야 전달됩니다. ✉️"; }
-        else if (ok) {
-          msg.className = "qna-msg ok";
-          msg.textContent = qnaMode === "private"
-            ? "질문이 전달되었어요! 남겨주신 이메일로 답변드리겠습니다. 🙏"
-            : "질문이 전달되었어요! 답변은 이 ‘질의응답’ 섹션에 공개로 올라옵니다. 잠시 후 확인해 주세요. 🙏";
-          $("qnaQ").value = ""; $("qnaEmail").value = "";
+    try { firebase.initializeApp(cfg); } catch (e) {}
+    const db = firebase.firestore(), auth = firebase.auth();
+    const COL = () => db.collection("questions");
+    const PER = 10;
+    let page = 0, published = [], pending = [], isOwner = false;
+
+    const fmt = (ts) => { try { const d = ts && ts.toDate ? ts.toDate() : null; return d ? d.getFullYear() + "." + (d.getMonth() + 1) + "." + d.getDate() : ""; } catch (e) { return ""; } };
+    const secOf = (ts) => (ts && ts.seconds) ? ts.seconds : 0;
+
+    function renderBoard() {
+      listEl.innerHTML = "";
+      if (!published.length) { listEl.appendChild(el("div", "qna-empty", "아직 공개된 질의응답이 없습니다. 위에서 첫 질문을 남겨보세요. 🙂")); pagerEl.innerHTML = ""; return; }
+      const pages = Math.ceil(published.length / PER);
+      if (page > pages - 1) page = pages - 1;
+      published.slice(page * PER, page * PER + PER).forEach((it) => {
+        const card = el("div", "qna-item");
+        const q = el("div", "qna-q"); q.innerHTML = "<b>Q.</b> " + esc(it.q) + (it.name ? " <span class=\"qna-by\">— " + esc(it.name) + "</span>" : "");
+        const a = el("div", "qna-a"); a.innerHTML = "<b>A.</b> " + esc(it.answer).replace(/\n/g, "<br>");
+        if (it.answeredAt) a.appendChild(el("div", "qna-date", fmt(it.answeredAt)));
+        card.appendChild(q); card.appendChild(a);
+        if (isOwner) {
+          const ops = el("div", "qna-ops");
+          const edit = el("button", "ghost", "수정"); const del = el("button", "ghost", "삭제");
+          ops.appendChild(edit); ops.appendChild(del); card.appendChild(ops);
+          edit.addEventListener("click", () => {
+            const ta = el("textarea", "qna-ans"); ta.value = it.answer;
+            const save = el("button", null, "저장"); const cancel = el("button", "ghost", "취소");
+            const box = el("div"); const r = el("div", "qna-ops"); r.appendChild(save); r.appendChild(cancel);
+            box.appendChild(ta); box.appendChild(r); a.replaceWith(box);
+            save.addEventListener("click", async () => { const v = ta.value.trim(); if (!v) return; save.disabled = true; try { await COL().doc(it.id).update({ answer: v }); await reloadAll(); } catch (e) { alert("저장 실패"); } });
+            cancel.addEventListener("click", () => renderBoard());
+          });
+          del.addEventListener("click", async () => { if (!confirm("이 질의응답을 삭제할까요?")) return; try { await COL().doc(it.id).delete(); await reloadAll(); } catch (e) { alert("삭제 실패"); } });
         }
-        else { msg.className = "qna-msg err"; msg.textContent = "전송에 실패했어요. 잠시 후 다시 시도해 주세요."; }
+        listEl.appendChild(card);
+      });
+      renderPager(pages);
+    }
+
+    function renderPager(pages) {
+      pagerEl.innerHTML = "";
+      if (pages <= 1) return;
+      const go = (p) => { page = Math.max(0, Math.min(pages - 1, p)); renderBoard(); document.getElementById("qna").scrollIntoView({ block: "start" }); };
+      const btn = (label, p, dis, cur) => { const b = el("button", "qp" + (cur ? " cur" : ""), label); if (dis) b.disabled = true; else b.addEventListener("click", () => go(p)); pagerEl.appendChild(b); };
+      btn("« 처음", 0, page === 0);
+      btn("‹ 이전", page - 1, page === 0);
+      const WIN = 10, start = Math.floor(page / WIN) * WIN, end = Math.min(pages, start + WIN);
+      for (let i = start; i < end; i++) btn(String(i + 1), i, false, i === page);
+      btn("다음 ›", page + 1, page === pages - 1);
+      btn("끝 »", pages - 1, page === pages - 1);
+    }
+
+    function renderAdmin() {
+      if (!adminEl) return;
+      adminEl.innerHTML = "";
+      if (!isOwner) return;
+      adminEl.appendChild(el("div", "qna-admin-title", "🔒 답변 대기 질문 " + pending.length + "개"));
+      if (!pending.length) { adminEl.appendChild(el("div", "qna-empty", "대기 중인 질문이 없습니다.")); return; }
+      pending.forEach((it) => {
+        const card = el("div", "qna-item pending");
+        const q = el("div", "qna-q"); q.innerHTML = "<b>Q.</b> " + esc(it.q) + (it.name ? " <span class=\"qna-by\">— " + esc(it.name) + "</span>" : "");
+        card.appendChild(q);
+        if (it.email) card.appendChild(el("div", "qna-mailto", "📧 " + esc(it.email)));
+        const ta = el("textarea", "qna-ans"); ta.placeholder = "답변을 입력하세요… (게시하면 게시판에 공개됩니다)";
+        const ops = el("div", "qna-ops");
+        const pub = el("button", null, "게시(공개)"); const del = el("button", "ghost", "삭제");
+        ops.appendChild(pub); ops.appendChild(del);
+        card.appendChild(ta); card.appendChild(ops);
+        pub.addEventListener("click", async () => {
+          const v = ta.value.trim(); if (!v) { ta.focus(); return; }
+          pub.disabled = true; pub.textContent = "게시 중…";
+          try {
+            await COL().doc(it.id).update({ answer: v, status: "published", answeredAt: firebase.firestore.FieldValue.serverTimestamp(), email: firebase.firestore.FieldValue.delete() });
+            await reloadAll();
+          } catch (e) { pub.disabled = false; pub.textContent = "게시(공개)"; alert("게시 실패: " + e.message); }
+        });
+        del.addEventListener("click", async () => { if (!confirm("이 질문을 삭제할까요?")) return; try { await COL().doc(it.id).delete(); await reloadAll(); } catch (e) { alert("삭제 실패"); } });
+        adminEl.appendChild(card);
       });
     }
-  }
+
+    async function loadPublished() {
+      const snap = await COL().where("status", "==", "published").get();
+      published = snap.docs.map((d) => Object.assign({ id: d.id }, d.data())).sort((a, b) => secOf(b.answeredAt) - secOf(a.answeredAt));
+    }
+    async function loadPending() {
+      if (!isOwner) { pending = []; return; }
+      const snap = await COL().where("status", "==", "pending").get();
+      pending = snap.docs.map((d) => Object.assign({ id: d.id }, d.data())).sort((a, b) => secOf(b.createdAt) - secOf(a.createdAt));
+    }
+    async function reloadAll() { await loadPublished(); await loadPending(); renderAdmin(); renderBoard(); }
+
+    loadPublished().then(renderBoard).catch((e) => { listEl.innerHTML = ""; listEl.appendChild(el("div", "qna-empty", "게시판을 불러오지 못했습니다. 잠시 후 새로고침해 주세요.")); console.warn(e); });
+
+    // 질문 등록
+    const sendBtn = $("qnaSend");
+    if (sendBtn) sendBtn.addEventListener("click", async () => {
+      const q = $("qnaQ").value.trim(), name = $("qnaName").value.trim(), email = $("qnaEmail").value.trim();
+      if (!q) { $("qnaQ").focus(); return; }
+      if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { msgEl.className = "qna-msg err"; msgEl.textContent = "이메일 형식을 확인해 주세요."; return; }
+      sendBtn.disabled = true; const o = sendBtn.textContent; sendBtn.textContent = "등록 중…";
+      try {
+        await COL().add({ q: q, name: name, email: email, answer: "", status: "pending", createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+        if (P.ownerFormKey) { // 새 질문 알림 이메일(선택)
+          fetch("https://api.web3forms.com/submit", { method: "POST", headers: { "Content-Type": "application/json", "Accept": "application/json" }, body: JSON.stringify({ access_key: P.ownerFormKey, subject: "[안경희 질의응답] 새 질문이 등록되었습니다", from_name: "질의응답 게시판", "질문": q, "이름": name || "(익명)", "연락 이메일": email || "(미입력)" }) }).catch(() => {});
+        }
+        msgEl.className = "qna-msg ok"; msgEl.textContent = "질문이 등록되었어요! 답변이 완료되면 이 게시판에 공개됩니다. 🙏";
+        $("qnaQ").value = ""; $("qnaName").value = ""; $("qnaEmail").value = "";
+      } catch (e) { msgEl.className = "qna-msg err"; msgEl.textContent = "등록에 실패했어요. 잠시 후 다시 시도해 주세요."; console.warn(e); }
+      sendBtn.disabled = false; sendBtn.textContent = o;
+    });
+
+    // 관리자 로그인/로그아웃
+    if (adminBtn) adminBtn.addEventListener("click", async () => {
+      if (auth.currentUser) { await auth.signOut(); return; }
+      try { await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
+      catch (e) { adminState.textContent = "로그인 취소/실패"; console.warn(e); }
+    });
+    auth.onAuthStateChanged(async (user) => {
+      isOwner = !!(user && user.email === OWNER);
+      if (adminState) adminState.textContent = user ? (isOwner ? "관리자 모드: " + user.email : "권한 없음 (" + user.email + ")") : "";
+      if (adminBtn) adminBtn.textContent = user ? "로그아웃" : "🔑 관리자";
+      try { await loadPending(); } catch (e) { pending = []; }
+      renderAdmin(); renderBoard();
+    });
+  })();
 
   $("cbtn").addEventListener("click", () => Chat.toggle());
   $("chatSend").addEventListener("click", () => Chat.send());

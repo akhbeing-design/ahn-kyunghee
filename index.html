@@ -181,22 +181,24 @@
       <div class="reveal">
         <span class="eyebrow">Q &amp; A</span>
         <h2 class="section-title">질의응답</h2>
-        <p class="section-lead">안경희 박사에게 궁금한 점을 남겨보세요. 답변받을 이메일을 남기시면 직접 답장드리고, 공개로 답변된 질문은 아래에 모입니다.</p>
+        <p class="section-lead">궁금한 점을 남겨주세요. 답변이 완료되면 이 게시판에 공개됩니다.</p>
       </div>
       <div class="qna-ask reveal">
         <textarea id="qnaQ" placeholder="궁금한 점을 자유롭게 적어주세요…" rows="3"></textarea>
-        <div class="qna-mode" id="qnaMode">
-          <button type="button" class="qmode on" data-mode="public">🌐 공개 답변 <small>질의응답에 게시돼요</small></button>
-          <button type="button" class="qmode" data-mode="private">🔒 개인 답변 <small>이메일로만 받아요</small></button>
-        </div>
         <div class="qna-ask-row">
-          <input id="qnaEmail" type="email" placeholder="답변받을 이메일 (공개 답변은 선택)" />
-          <button class="btn btn-gold" id="qnaSend">질문 보내기</button>
+          <input id="qnaName" type="text" placeholder="이름/표시 (선택)" />
+          <input id="qnaEmail" type="email" placeholder="이메일 (선택 · 비공개)" />
+          <button class="btn btn-gold" id="qnaSend">질문 등록</button>
         </div>
-        <div class="qna-hint" id="qnaHint">공개 답변은 질의응답 섹션에 올라옵니다. 알림을 원하시면 이메일을 남겨주세요.</div>
         <div class="qna-msg" id="qnaMsg"></div>
       </div>
+      <div class="qna-adminbar reveal">
+        <button class="qna-admin-link" id="qnaAdminBtn">🔑 관리자</button>
+        <span class="qna-admin-state" id="qnaAdminState"></span>
+      </div>
+      <div class="qna-admin reveal" id="qnaAdmin"></div>
       <div class="qna-list reveal" id="qnaList"></div>
+      <div class="qna-pager" id="qnaPager"></div>
     </div>
   </section>
 
@@ -235,9 +237,12 @@
     <div class="lb-inner" id="lbInner"></div>
   </div>
 
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="firebase-config.js"></script>
   <script src="data.js"></script>
   <script src="videos.js"></script>
-  <script src="qna.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
