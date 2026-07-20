@@ -13,7 +13,7 @@ const PROFILE = {
   credentials: ["경영학 박사 (재무관리)", "前 한국신용평가 본부장", "現 대학 교수 · 고문", "저술가"],
 
   // 사진을 넣으려면 images/portrait.jpg 파일을 두고 아래를 "images/portrait.jpg"로 바꾸세요.
-  portrait: "images/portrait.png",
+  portrait: "images/portrait.png?v=20260720",
 
   stats: [
     { value: "30+", unit: "년", label: "자본시장 경험" },

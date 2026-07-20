@@ -6,3 +6,5 @@ Thumbs.db
 __pycache__/
 *.pyc
 비밀답변.json
+*.url
+images/portrait_old.png
