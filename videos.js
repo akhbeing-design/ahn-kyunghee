@@ -11,5 +11,9 @@ window.STUDY_VIDEOS = [
   {
     "file": "videos/test-baserate-20260713.mp4",
     "title": "[안경스] 기준금리 (테스트 영상)"
+  },
+  {
+    "url": "https://youtu.be/sUienzK_a6I",
+    "title": "[안경스] 2026년 상반기 단기사채 급증 !!!"
   }
 ];
