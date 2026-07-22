@@ -5,15 +5,15 @@
       · 올린파일: { "file": "videos/파일명.mp4", "title": "제목" } */
 window.STUDY_VIDEOS = [
   {
+    "url": "https://youtu.be/sUienzK_a6I",
+    "title": "[안경스] 2026년 상반기 단기사채 급증 !!!"
+  },
+  {
     "url": "https://youtu.be/3EZ3KD0ELro",
     "title": "[안경스] 외국인 돈방석, 한국경제엔 경고등"
   },
   {
     "file": "videos/test-baserate-20260713.mp4",
     "title": "[안경스] 기준금리 (테스트 영상)"
-  },
-  {
-    "url": "https://youtu.be/sUienzK_a6I",
-    "title": "[안경스] 2026년 상반기 단기사채 급증 !!!"
   }
 ];
