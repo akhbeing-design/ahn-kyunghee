@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-안경스(안박사의 경제스터디) 영상 관리 도구
+Econstudy(안박사의 경제스터디) 영상 관리 도구
 ────────────────────────────────────────────────────────
-· 더블클릭(안경스_관리.bat)하면 관리 화면이 브라우저에 열립니다.
+· 더블클릭(Econstudy_관리.bat)하면 관리 화면이 브라우저에 열립니다.
 · 유튜브 링크를 추가/삭제하고 [게시하기]를 누르면
   videos.js 를 고쳐 GitHub 에 자동으로 올립니다(데스크탑·모바일 모두 반영).
 · 백엔드 서버가 아니라, 내 PC에서만 실행되는 개인 관리 도구입니다.
@@ -11,8 +11,8 @@ import http.server, socketserver, json, os, re, subprocess, webbrowser, sys, thr
 
 REPO = os.path.dirname(os.path.abspath(__file__))
 VIDEOS_JS = os.path.join(REPO, "videos.js")
-HEADER = ('/* 안경스(안박사의 경제스터디) 게시 영상 목록\n'
-          '   ── 이 파일은 "안경스_관리" 도구가 자동으로 고쳐서 GitHub에 올립니다.\n'
+HEADER = ('/* Econstudy(안박사의 경제스터디) 게시 영상 목록\n'
+          '   ── 이 파일은 "Econstudy_관리" 도구가 자동으로 고쳐서 GitHub에 올립니다.\n'
           '      손으로 고쳐도 되지만, 형식(JSON 배열)을 지켜주세요.\n'
           '      · 유튜브:   { "url": "https://youtu.be/영상ID", "title": "제목" }\n'
           '      · 올린파일: { "file": "videos/파일명.mp4", "title": "제목" } */\n')
@@ -80,7 +80,7 @@ def publish(vids):
     git("add", "videos.js")
     if os.path.isdir(VIDEOS_DIR):
         git("add", "videos")
-    code, out = git("commit", "-m", "안경스 영상 업데이트")
+    code, out = git("commit", "-m", "Econstudy 영상 업데이트")
     committed = (code == 0)
     if not committed and "nothing to commit" not in out and "변경 사항 없음" not in out and "no changes" not in out:
         return {"ok": False, "msg": "커밋 실패:\n" + out, "count": len(clean)}
@@ -94,7 +94,7 @@ def publish(vids):
                    ("변경 사항이 없어 그대로 두었습니다. (현재 게시된 영상 %d개)" % len(clean))}
 
 PAGE = r"""<!DOCTYPE html>
-<html lang="ko"><head><meta charset="utf-8"><title>안경스 영상 관리</title>
+<html lang="ko"><head><meta charset="utf-8"><title>Econstudy 영상 관리</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
   :root{--navy:#12233f;--navy2:#1b3358;--gold:#b6924f;--gold2:#cbb07a;--ink:#1c2430;--soft:#5a6472;--line:#e6e0d5;--ivory:#f7f4ef}
@@ -138,7 +138,7 @@ PAGE = r"""<!DOCTYPE html>
   a{color:var(--navy2)}
 </style></head>
 <body>
-  <div class="top"><h1>🎬 안경스 영상 관리</h1><p>유튜브 링크를 추가하고 [게시하기]를 누르면 사이트(데스크탑·모바일)에 반영됩니다.</p></div>
+  <div class="top"><h1>🎬 Econstudy 영상 관리</h1><p>유튜브 링크를 추가하고 [게시하기]를 누르면 사이트(데스크탑·모바일)에 반영됩니다.</p></div>
   <div class="wrap">
     <div class="card">
       <h2>➕ 새 영상 추가</h2>
@@ -286,7 +286,7 @@ def main():
     else:
         print("사용 가능한 포트를 찾지 못했습니다."); return
     url = "http://127.0.0.1:%d/" % port
-    print("\n  안경스 영상 관리 도구가 실행 중입니다.")
+    print("\n  Econstudy 영상 관리 도구가 실행 중입니다.")
     print("  브라우저에서 열기:  " + url)
     print("  (이 창을 닫으면 도구가 종료됩니다.)\n")
     threading.Timer(0.8, lambda: webbrowser.open(url)).start()

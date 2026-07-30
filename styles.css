@@ -295,7 +295,7 @@ a { color: inherit; text-decoration: none; }
 }
 .owner-box button.ghost { background: transparent; color: var(--ink-soft); border: 1px solid var(--line); }
 
-/* ---------- 안경스 (유튜브) ---------- */
+/* ---------- Econstudy (유튜브) ---------- */
 .study-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 44px; }
 .yt-card { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; box-shadow: var(--shadow-sm); transition: transform .2s, box-shadow .2s; }
 .yt-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
@@ -306,7 +306,7 @@ a { color: inherit; text-decoration: none; }
 .yt-title { padding: 16px 18px; font-size: 15.5px; font-weight: 600; color: var(--navy-900); line-height: 1.5; }
 .study-empty { grid-column: 1 / -1; text-align: center; padding: 48px 20px; color: var(--ink-soft); font-size: 15px; line-height: 1.9; border: 1px dashed var(--line); border-radius: 14px; background: var(--ivory); }
 .study-empty b { color: var(--navy-800); }
-/* 안경스 카드: 삭제 버튼 · 업로드 동영상 */
+/* Econstudy 카드: 삭제 버튼 · 업로드 동영상 */
 .yt-card { position: relative; }
 .yt-thumb.file { overflow: hidden; background: #000; }
 .yt-thumb.file video { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -321,7 +321,7 @@ a { color: inherit; text-decoration: none; }
 #studyPublish:hover { background: var(--gold-soft); }
 .yt-del { position: absolute; top: 8px; right: 8px; width: 26px; height: 26px; border-radius: 50%; background: rgba(0,0,0,0.6); color: #fff; border: none; cursor: pointer; font-size: 12px; display: grid; place-items: center; z-index: 2; }
 .yt-del:hover { background: var(--accent, #c0392b); }
-/* 안경스 관리(추가) UI */
+/* Econstudy 관리(추가) UI */
 .study-admin { margin-top: 28px; }
 .study-admin-toggle { background: var(--ivory); border: 1px solid var(--line); color: var(--navy-800); padding: 9px 18px; border-radius: 999px; cursor: pointer; font-family: var(--sans); font-size: 14px; font-weight: 600; transition: background .18s, color .18s; }
 .study-admin-toggle:hover { background: var(--navy-800); color: #fff; }
@@ -542,7 +542,7 @@ img { max-width: 100%; }
   /* 강의·연구 → 1열 */
   .tr-grid { grid-template-columns: 1fr; gap: 36px; }
 
-  /* 안경스 → 1열 */
+  /* Econstudy → 1열 */
   .study-grid { grid-template-columns: 1fr; gap: 18px; margin-top: 32px; }
 
   /* 챗봇 → 거의 전체폭 시트 */

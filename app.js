@@ -191,7 +191,7 @@
   });
   P.external.forEach((x) => $("external").appendChild(el("li", null, esc(x))));
 
-  /* ---------- 안박사의 경제스터디 (안경스) — 유튜브/동영상 + 추가 UI ---------- */
+  /* ---------- 안박사의 경제스터디 (Econstudy) — 유튜브/동영상 + 추가 UI ---------- */
   if (P.study && $("studyGrid")) {
     const S = P.study;
     $("studyTitle").textContent = S.title + " (" + S.short + ")";
@@ -204,7 +204,7 @@
     const ytid = (u) => { if (!u) return null; const m = String(u).match(/(?:youtu\.be\/|[?&]v=|shorts\/|embed\/|live\/)([A-Za-z0-9_-]{11})/); return m ? m[1] : (/^[A-Za-z0-9_-]{11}$/.test(u) ? u : null); };
 
     // 게시된 영상 = data.js(study.videos) + videos.js(window.STUDY_VIDEOS).
-    // videos.js 는 '안경스_관리' 로컬 도구가 갱신해서 GitHub에 올린다 → 데스크탑·모바일 모두 반영.
+    // videos.js 는 'Econstudy_관리' 로컬 도구가 갱신해서 GitHub에 올린다 → 데스크탑·모바일 모두 반영.
     const published = [].concat(S.videos || [], window.STUDY_VIDEOS || []);
 
     // 영상 크게 보기(라이트박스)
@@ -252,7 +252,7 @@
       const id = ytid(v.url || v.id);                                        // 유튜브
       if (id && !seen.has(id)) { seen.add(id); grid.appendChild(ytCard(id, v.title)); }
     });
-    if (!grid.children.length) grid.appendChild(el("div", "study-empty", '아직 등록된 영상이 없습니다. <b>안경스_관리</b> 도구에서 영상을 추가·게시하면 여기에 표시됩니다.'));
+    if (!grid.children.length) grid.appendChild(el("div", "study-empty", '아직 등록된 영상이 없습니다. <b>Econstudy_관리</b> 도구에서 영상을 추가·게시하면 여기에 표시됩니다.'));
   }
 
   /* ---------- 내비게이션 스크롤 효과 ---------- */
@@ -325,7 +325,7 @@
       case "book": return bookAnswer();
       case "research": return { text: "주요 논문·연구예요.\n\n" + P.research.map((r) => "• " + r.title + " (" + r.venue + ")" + (r.note ? " 🏆 " + r.note : "")).join("\n"), chips: qaChips(5) };
       case "endorse": return { text: "이 책과 저를 이렇게 평가해 주셨어요.\n\n" + P.endorsements.map((q) => "“" + q.quote.slice(0, 55) + "…”\n— " + q.name).join("\n\n"), chips: qaChips(5) };
-      case "study": { const n = ((P.study && P.study.videos ? P.study.videos.length : 0) + (window.STUDY_VIDEOS ? window.STUDY_VIDEOS.length : 0)); return { text: (P.study ? P.study.title + "(" + P.study.short + ") — " + P.study.desc : "경제스터디") + (n ? "\n\n위쪽 ‘안경스’ 섹션에서 영상을 보실 수 있어요." : "\n\n곧 영상이 올라올 예정이에요. 위쪽 ‘안경스’ 섹션을 확인해 주세요."), chips: qaChips(5) }; }
+      case "study": { const n = ((P.study && P.study.videos ? P.study.videos.length : 0) + (window.STUDY_VIDEOS ? window.STUDY_VIDEOS.length : 0)); return { text: (P.study ? P.study.title + "(" + P.study.short + ") — " + P.study.desc : "경제스터디") + (n ? "\n\n위쪽 ‘Econstudy’ 섹션에서 영상을 보실 수 있어요." : "\n\n곧 영상이 올라올 예정이에요. 위쪽 ‘Econstudy’ 섹션을 확인해 주세요."), chips: qaChips(5) }; }
       case "browse": return { text: "어떤 주제가 궁금하세요? 아래에서 골라보셔도 좋아요.", chips: MENU };
       case "admin": return adminList();
       case "adminClear": Store.set(PENDING, []); return { text: "받은 질문을 모두 비웠어요. 🗑", chips: qaChips(4) };
@@ -360,7 +360,7 @@
     [["논문", "연구", "학술", "학회", "수상"], "research"],
     [["책", "저서", "목차", "유리창"], "book"],
     [["추천", "서평", "평가받"], "endorse"],
-    [["유튜브", "영상", "동영상", "경제스터디", "안경스", "스터디"], "study"],
+    [["유튜브", "영상", "동영상", "경제스터디", "Econstudy", "스터디"], "study"],
     [["강의", "강사", "가르", "수업", "과목", "교수"], "teaching"],
     [["경력", "이력", "커리어", "직장 생활", "한신평"], "career"],
     [["학력", "졸업", "박사", "석사", "학사", "전공"], "education"],
