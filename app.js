@@ -273,7 +273,7 @@
   }
 
   /* ---------- 카카오톡 채널 1:1 채팅 단추 ---------- */
-  // 단추는 두 군데입니다 — 질의응답 섹션 안(#qnaKakao), 그리고 화면 오른쪽 아래 떠 있는 것(#kakaoFab).
+  // 단추는 두 군데입니다 — 첫 화면 단추 줄(#kakaoHeroBtn), 질의응답 섹션 안(#qnaKakao).
   // kakao-config.js 의 channelPublicId 가 있어야 둘 다 나옵니다.
   //   · 기본  — 채널 1:1 채팅 주소를 새 창으로 엽니다. 카카오 SDK 를 받지 않습니다.
   //   · javascriptKey 를 채우면 그때만 SDK(87KB)를 받아 Kakao.Channel.chat() 으로 엽니다.
@@ -310,8 +310,8 @@
     const box = $("qnaKakao"), btn = $("kakaoChatBtn");
     if (box && btn) { box.hidden = false; btn.addEventListener("click", openChat); }
 
-    const fab = $("kakaoFab");
-    if (fab) { fab.hidden = false; fab.addEventListener("click", openChat); }
+    const hero = $("kakaoHeroBtn");
+    if (hero) { hero.hidden = false; hero.addEventListener("click", openChat); }
   })();
 
   /* ---------- 내비게이션 스크롤 효과 ---------- */
