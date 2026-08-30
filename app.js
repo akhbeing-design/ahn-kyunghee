@@ -273,13 +273,12 @@
   }
 
   /* ---------- 카카오톡 채널 1:1 채팅 단추 ---------- */
-  // kakao-config.js 의 channelPublicId 만 있어도 단추가 나옵니다.
+  // 단추는 두 군데입니다 — 질의응답 섹션 안(#qnaKakao), 그리고 화면 오른쪽 아래 떠 있는 것(#kakaoFab).
+  // kakao-config.js 의 channelPublicId 가 있어야 둘 다 나옵니다.
   //   · 기본  — 채널 1:1 채팅 주소를 새 창으로 엽니다. 카카오 SDK 를 받지 않습니다.
   //   · javascriptKey 를 채우면 그때만 SDK(87KB)를 받아 Kakao.Channel.chat() 으로 엽니다.
   //     (개발자 콘솔에 이 도메인이 등록돼 있어야 하며, 막히면 주소 방식으로 되돌아갑니다.)
   (function kakaoChannelChat() {
-    const box = $("qnaKakao"), btn = $("kakaoChatBtn");
-    if (!box || !btn) return;
     const cfg = window.KAKAO_CHANNEL || {};
     const pid = (cfg.channelPublicId || "").trim();
     if (!pid) return;
@@ -301,13 +300,18 @@
       document.head.appendChild(sc);
     }
 
-    box.hidden = false;
-    btn.addEventListener("click", () => {
+    function openChat() {
       if (ready && window.Kakao && Kakao.Channel && Kakao.Channel.chat) {
         try { Kakao.Channel.chat({ channelPublicId: pid }); return; } catch (e) {}
       }
       window.open(chatUrl, "_blank", "noopener");
-    });
+    }
+
+    const box = $("qnaKakao"), btn = $("kakaoChatBtn");
+    if (box && btn) { box.hidden = false; btn.addEventListener("click", openChat); }
+
+    const fab = $("kakaoFab");
+    if (fab) { fab.hidden = false; fab.addEventListener("click", openChat); }
   })();
 
   /* ---------- 내비게이션 스크롤 효과 ---------- */

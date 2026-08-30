@@ -361,6 +361,20 @@ a { color: inherit; text-decoration: none; }
 .cbtn.open .chat-ic { display:none; }
 .cbtn.open .close-ic { display:block; }
 
+/* 떠 있는 카카오톡 문의 단추 — 챗봇 단추 바로 위 (kakao-config.js 를 채우면 나옵니다) */
+.kakao-fab {
+  position: fixed; right: 30px; bottom: 108px; z-index: 950; width: 56px; height: 56px; border-radius: 50%;
+  background: #FEE500; color: #191600; border: none; cursor: pointer;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.22);
+  display: grid; place-items: center; padding: 0;
+  transition: transform .2s, opacity .2s;
+}
+.kakao-fab[hidden] { display: none; }
+.kakao-fab svg { width: 30px; height: 30px; }
+.kakao-fab:hover { transform: scale(1.06); }
+/* 챗봇 창이 열리면 가리지 않게 잠시 숨긴다 */
+.cbtn.open ~ .kakao-fab { opacity: 0; pointer-events: none; }
+
 .chatbox {
   position: fixed; right: 30px; bottom: 100px; z-index: 949; width: 400px;
   height: 620px; max-height: calc(100vh - 130px);
@@ -558,6 +572,8 @@ img { max-width: 100%; }
 
   /* 챗봇 → 거의 전체폭 시트 */
   .cbtn { right: 18px; bottom: 18px; width: 56px; height: 56px; font-size: 24px; }
+  .kakao-fab { right: 18px; bottom: 86px; width: 50px; height: 50px; }
+  .kakao-fab svg { width: 27px; height: 27px; }
   .chatbox {
     right: 3vw; left: 3vw; width: auto; bottom: 86px;
     height: 72vh; max-height: calc(100vh - 110px);

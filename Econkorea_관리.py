@@ -16,6 +16,7 @@ def head(name):
     return ('/* %s 게시 영상 목록\n'
             '   ── 이 파일은 "Econkorea_관리" 도구가 자동으로 고쳐서 GitHub에 올립니다.\n'
             '      손으로 고쳐도 되지만, 형식(JSON 배열)을 지켜주세요.\n'
+            '      위에 적힌 것이 사이트에서 먼저 보입니다(새것이 앞).\n'
             '      · 유튜브:   { "url": "https://youtu.be/영상ID", "title": "제목" }\n'
             '      · 올린파일: { "file": "videos/파일명.mp4", "title": "제목" } */\n') % name
 
@@ -175,9 +176,11 @@ PAGE = r"""<!DOCTYPE html>
         <span id="upmsg" class="note" style="margin:0">PC 동영상 파일을 사이트에 직접 올립니다. (용량 큰 영상은 유튜브 링크를 권장)</span>
       </div>
       <div class="note">유튜브: <b>일부공개(unlisted)</b>/공개로 올린 뒤 링크를 붙여넣기. 제목은 목록에서 바로 고칠 수 있어요.</div>
+      <div class="note">새로 넣은 영상은 <b>목록 맨 위</b>에 놓입니다. 사이트에도 위에 있는 것이 먼저 보입니다(새것이 앞). 차례는 ▲▼ 로 바꿀 수 있어요.</div>
     </div>
     <div class="card">
       <h2>📺 <span id="listTo"></span> 게시할 영상 목록 <span id="cnt" style="color:var(--soft);font-weight:400"></span></h2>
+      <div class="note" style="margin:0 0 10px">위에 있는 것이 사이트에서 먼저 보입니다.</div>
       <div id="list" class="list"></div>
     </div>
     <div class="card">
@@ -235,7 +238,7 @@ function add(){
   const u=document.getElementById('u').value.trim();
   if(!ytid(u)){ alert('올바른 유튜브 링크를 붙여넣어 주세요.'); return; }
   if(vids().some(v=>ytid(v.url)===ytid(u))){ alert('이미 '+LABEL[ch]+' 목록에 있는 영상입니다.'); return; }
-  vids().push({url:u,title:document.getElementById('t').value.trim()});
+  vids().unshift({url:u,title:document.getElementById('t').value.trim()});   // 새것이 맨 위
   document.getElementById('u').value=''; document.getElementById('t').value=''; render();
   setStatus('info', LABEL[ch]+'에 추가했습니다. 아래 [게시하기]를 눌러야 사이트에 반영돼요.');
 }
@@ -249,7 +252,7 @@ function uploadFile(inp){
       const b64=String(rd.result).split(',')[1];
       const r=await fetch('/upload',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:f.name,data:b64})});
       const j=await r.json();
-      if(j.ok){ vids().push({file:j.file,title:f.name.replace(/\.[^.]+$/,'')}); render(); um.textContent='파일 추가됨: '+j.file+' ('+LABEL[ch]+') — 아래 [게시하기]를 눌러 반영하세요.'; }
+      if(j.ok){ vids().unshift({file:j.file,title:f.name.replace(/\.[^.]+$/,'')}); render(); um.textContent='파일 추가됨: '+j.file+' ('+LABEL[ch]+') — 아래 [게시하기]를 눌러 반영하세요.'; }
       else { um.textContent='업로드 실패: '+(j.msg||''); }
     }catch(e){ um.textContent='업로드 오류: '+e; }
     inp.value='';
