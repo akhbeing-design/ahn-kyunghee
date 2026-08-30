@@ -1,21 +1,32 @@
 # -*- coding: utf-8 -*-
 """
-Econstudy(안박사의 경제스터디) 영상 관리 도구
+Econkorea · TOPIKSTUDY 영상 관리 도구
 ────────────────────────────────────────────────────────
-· 더블클릭(Econstudy_관리.bat)하면 관리 화면이 브라우저에 열립니다.
-· 유튜브 링크를 추가/삭제하고 [게시하기]를 누르면
-  videos.js 를 고쳐 GitHub 에 자동으로 올립니다(데스크탑·모바일 모두 반영).
+· 더블클릭(Econkorea_관리.bat)하면 관리 화면이 브라우저에 열립니다.
+· 위쪽에서 채널(Econkorea / TOPIKSTUDY)을 고르고 유튜브 링크를 추가/삭제한 뒤
+  [게시하기]를 누르면 videos.js · topik_videos.js 를 고쳐 GitHub 에 자동으로 올립니다
+  (데스크탑·모바일 모두 반영).
 · 백엔드 서버가 아니라, 내 PC에서만 실행되는 개인 관리 도구입니다.
 """
 import http.server, socketserver, json, os, re, subprocess, webbrowser, sys, threading, urllib.parse
 
 REPO = os.path.dirname(os.path.abspath(__file__))
-VIDEOS_JS = os.path.join(REPO, "videos.js")
-HEADER = ('/* Econstudy(안박사의 경제스터디) 게시 영상 목록\n'
-          '   ── 이 파일은 "Econstudy_관리" 도구가 자동으로 고쳐서 GitHub에 올립니다.\n'
-          '      손으로 고쳐도 되지만, 형식(JSON 배열)을 지켜주세요.\n'
-          '      · 유튜브:   { "url": "https://youtu.be/영상ID", "title": "제목" }\n'
-          '      · 올린파일: { "file": "videos/파일명.mp4", "title": "제목" } */\n')
+
+def head(name):
+    return ('/* %s 게시 영상 목록\n'
+            '   ── 이 파일은 "Econkorea_관리" 도구가 자동으로 고쳐서 GitHub에 올립니다.\n'
+            '      손으로 고쳐도 되지만, 형식(JSON 배열)을 지켜주세요.\n'
+            '      · 유튜브:   { "url": "https://youtu.be/영상ID", "title": "제목" }\n'
+            '      · 올린파일: { "file": "videos/파일명.mp4", "title": "제목" } */\n') % name
+
+# 채널 두 개 — 화면 이름 · 저장 파일 · 자바스크립트 변수
+CHANNELS = {
+    "econ":  {"label": "Econkorea",  "file": "videos.js",       "var": "STUDY_VIDEOS",
+              "head": head("Econkorea(안박사의 경제스터디)")},
+    "topik": {"label": "TOPIKSTUDY", "file": "topik_videos.js", "var": "TOPIK_VIDEOS",
+              "head": head("TOPIKSTUDY")},
+}
+ORDER = ["econ", "topik"]
 
 YT_RE = re.compile(r'(?:youtu\.be/|[?&]v=|shorts/|embed/|live/)([A-Za-z0-9_-]{11})')
 
@@ -27,16 +38,18 @@ def ytid(u):
         return m.group(1)
     return u if re.fullmatch(r'[A-Za-z0-9_-]{11}', str(u)) else None
 
-def read_videos():
+def read_videos(ch):
+    c = CHANNELS[ch]
     try:
-        with open(VIDEOS_JS, encoding="utf-8") as f:
+        with open(os.path.join(REPO, c["file"]), encoding="utf-8") as f:
             txt = f.read()
-        m = re.search(r'window\.STUDY_VIDEOS\s*=\s*(\[.*?\])\s*;', txt, re.S)
+        m = re.search(r'window\.' + c["var"] + r'\s*=\s*(\[.*?\])\s*;', txt, re.S)
         return json.loads(m.group(1)) if m else []
     except Exception:
         return []
 
-def write_videos(vids):
+def write_videos(ch, vids):
+    c = CHANNELS[ch]
     clean = []
     for v in vids:
         if v.get("file"):                                   # 사이트에 올린 동영상 파일
@@ -46,8 +59,8 @@ def write_videos(vids):
         if not vid:
             continue
         clean.append({"url": "https://youtu.be/" + vid, "title": (v.get("title") or "").strip()})
-    body = HEADER + "window.STUDY_VIDEOS = " + json.dumps(clean, ensure_ascii=False, indent=2) + ";\n"
-    with open(VIDEOS_JS, "w", encoding="utf-8") as f:
+    body = c["head"] + "window." + c["var"] + " = " + json.dumps(clean, ensure_ascii=False, indent=2) + ";\n"
+    with open(os.path.join(REPO, c["file"]), "w", encoding="utf-8") as f:
         f.write(body)
     return clean
 
@@ -75,26 +88,31 @@ def git(*args):
                        capture_output=True, text=True, encoding="utf-8", errors="replace")
     return p.returncode, ((p.stdout or "") + (p.stderr or "")).strip()
 
-def publish(vids):
-    clean = write_videos(vids)
-    git("add", "videos.js")
+def publish(data):
+    """data = {"econ": [...], "topik": [...]} — 두 채널을 함께 저장하고 한 번에 올립니다."""
+    counts = {}
+    for ch in ORDER:
+        counts[ch] = len(write_videos(ch, data.get(ch, [])))
+        git("add", CHANNELS[ch]["file"])
     if os.path.isdir(VIDEOS_DIR):
         git("add", "videos")
-    code, out = git("commit", "-m", "Econstudy 영상 업데이트")
+    total = sum(counts.values())
+    code, out = git("commit", "-m", "Econkorea·TOPIKSTUDY 영상 업데이트")
     committed = (code == 0)
     if not committed and "nothing to commit" not in out and "변경 사항 없음" not in out and "no changes" not in out:
-        return {"ok": False, "msg": "커밋 실패:\n" + out, "count": len(clean)}
+        return {"ok": False, "msg": "커밋 실패:\n" + out, "counts": counts}
     pcode, pout = git("push")
     if pcode != 0 and "up to date" not in pout.lower() and "up-to-date" not in pout.lower():
         return {"ok": False, "msg": "GitHub 업로드(push) 실패:\n" + pout +
-                "\n\n인터넷 연결이나 GitHub 로그인 상태를 확인해 주세요.", "count": len(clean)}
-    return {"ok": True, "count": len(clean),
-            "msg": ("게시 완료! 영상 %d개를 GitHub에 올렸습니다.\n1~2분 뒤 사이트(데스크탑·모바일)에 반영됩니다." % len(clean))
+                "\n\n인터넷 연결이나 GitHub 로그인 상태를 확인해 주세요.", "counts": counts}
+    detail = " · ".join("%s %d개" % (CHANNELS[ch]["label"], counts[ch]) for ch in ORDER)
+    return {"ok": True, "counts": counts,
+            "msg": ("게시 완료! GitHub에 올렸습니다. (%s)\n1~2분 뒤 사이트(데스크탑·모바일)에 반영됩니다." % detail)
                    if committed else
-                   ("변경 사항이 없어 그대로 두었습니다. (현재 게시된 영상 %d개)" % len(clean))}
+                   ("변경 사항이 없어 그대로 두었습니다. (%s)" % detail)}
 
 PAGE = r"""<!DOCTYPE html>
-<html lang="ko"><head><meta charset="utf-8"><title>Econstudy 영상 관리</title>
+<html lang="ko"><head><meta charset="utf-8"><title>Econkorea · TOPIKSTUDY 영상 관리</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
   :root{--navy:#12233f;--navy2:#1b3358;--gold:#b6924f;--gold2:#cbb07a;--ink:#1c2430;--soft:#5a6472;--line:#e6e0d5;--ivory:#f7f4ef}
@@ -115,6 +133,10 @@ PAGE = r"""<!DOCTYPE html>
   .pub{background:var(--gold);color:#241a06;font-size:16px;padding:14px 26px;width:100%}
   .pub:hover{background:var(--gold2)}
   .pub:disabled{opacity:.5;cursor:default}
+  .tabs{display:flex;gap:8px;margin-bottom:16px}
+  .tabs button{flex:1;background:#fff;border:1px solid var(--line);color:var(--soft);padding:13px 10px;font-size:15px}
+  .tabs button.on{background:var(--navy);border-color:var(--navy);color:#fff}
+  .tabs .n{font-weight:400;opacity:.75;font-size:13px}
   .list{display:flex;flex-direction:column;gap:10px;margin-top:4px}
   .vid{display:flex;gap:12px;align-items:center;border:1px solid var(--line);border-radius:11px;padding:10px;background:var(--ivory)}
   .vid img{width:120px;height:68px;object-fit:cover;border-radius:7px;flex:none;background:#ccc}
@@ -138,10 +160,11 @@ PAGE = r"""<!DOCTYPE html>
   a{color:var(--navy2)}
 </style></head>
 <body>
-  <div class="top"><h1>🎬 Econstudy 영상 관리</h1><p>유튜브 링크를 추가하고 [게시하기]를 누르면 사이트(데스크탑·모바일)에 반영됩니다.</p></div>
+  <div class="top"><h1>🎬 영상 관리 — Econkorea · TOPIKSTUDY</h1><p>채널을 고르고 유튜브 링크를 추가한 뒤 [게시하기]를 누르면 사이트(데스크탑·모바일)에 반영됩니다.</p></div>
   <div class="wrap">
+    <div class="tabs" id="tabs"></div>
     <div class="card">
-      <h2>➕ 새 영상 추가</h2>
+      <h2>➕ <span id="addTo"></span>에 새 영상 추가</h2>
       <div class="row">
         <input id="u" type="text" placeholder="유튜브 링크 (youtu.be/… 또는 youtube.com/watch?v=…)">
         <input id="t" type="text" placeholder="제목 (선택)" style="max-width:240px">
@@ -154,37 +177,55 @@ PAGE = r"""<!DOCTYPE html>
       <div class="note">유튜브: <b>일부공개(unlisted)</b>/공개로 올린 뒤 링크를 붙여넣기. 제목은 목록에서 바로 고칠 수 있어요.</div>
     </div>
     <div class="card">
-      <h2>📺 게시할 영상 목록 <span id="cnt" style="color:var(--soft);font-weight:400"></span></h2>
+      <h2>📺 <span id="listTo"></span> 게시할 영상 목록 <span id="cnt" style="color:var(--soft);font-weight:400"></span></h2>
       <div id="list" class="list"></div>
     </div>
     <div class="card">
-      <button id="pubBtn" class="pub" onclick="publish()">💾 게시하기 (GitHub에 올려 모든 기기에 반영)</button>
+      <button id="pubBtn" class="pub" onclick="publish()">💾 게시하기 (두 채널 모두 GitHub에 올려 모든 기기에 반영)</button>
       <div id="status"></div>
-      <div class="note">게시하면 <b>videos.js</b>가 갱신되고 GitHub에 자동 업로드됩니다. 반영까지 보통 1~2분 걸려요.</div>
+      <div class="note">게시하면 <b>videos.js</b>(Econkorea)와 <b>topik_videos.js</b>(TOPIKSTUDY)가 갱신되고 GitHub에 자동 업로드됩니다. 반영까지 보통 1~2분 걸려요.</div>
     </div>
     <p class="note">사이트 주소: <a href="https://akhbeing-design.github.io/ahn-kyunghee/" target="_blank">akhbeing-design.github.io/ahn-kyunghee</a></p>
   </div>
 <script>
-let vids = __VIDEOS_JSON__;
+const LABEL = __LABELS_JSON__;
+const ORDER = __ORDER_JSON__;
+let data = __DATA_JSON__;
+let ch = ORDER[0];
+function vids(){ return data[ch]; }
 function ytid(u){ if(!u) return null; const m=String(u).match(/(?:youtu\.be\/|[?&]v=|shorts\/|embed\/|live\/)([A-Za-z0-9_-]{11})/); return m?m[1]:(/^[A-Za-z0-9_-]{11}$/.test(u)?u:null); }
 function esc(s){ return String(s||"").replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function renderTabs(){
+  const T=document.getElementById('tabs'); T.innerHTML='';
+  ORDER.forEach(k=>{
+    const b=document.createElement('button');
+    b.className = (k===ch?'on':'');
+    b.innerHTML = esc(LABEL[k]) + ' <span class="n">· ' + data[k].length + '개</span>';
+    b.onclick = ()=>{ ch=k; render(); };
+    T.appendChild(b);
+  });
+  document.getElementById('addTo').textContent = LABEL[ch];
+  document.getElementById('listTo').textContent = LABEL[ch];
+}
 function render(){
+  renderTabs();
   const L=document.getElementById('list'); L.innerHTML='';
-  document.getElementById('cnt').textContent = vids.length?('· '+vids.length+'개'):'';
-  if(!vids.length){ L.innerHTML='<div class="empty">아직 영상이 없습니다. 위에서 유튜브 링크를 추가해 보세요.</div>'; return; }
-  vids.forEach((v,i)=>{
+  const V=vids();
+  document.getElementById('cnt').textContent = V.length?('· '+V.length+'개'):'';
+  if(!V.length){ L.innerHTML='<div class="empty">아직 영상이 없습니다. 위에서 유튜브 링크를 추가해 보세요.</div>'; return; }
+  V.forEach((v,i)=>{
     const d=document.createElement('div'); d.className='vid';
     const thumb = v.file ? `<div class="thumbph">🎬</div>`
                          : `<img src="https://img.youtube.com/vi/${ytid(v.url)}/mqdefault.jpg" alt="">`;
     const sub = v.file ? ('올린 파일 · '+esc(v.file)) : esc(v.url);
     d.innerHTML=`${thumb}
       <div class="meta">
-        <input class="ttl" value="${esc(v.title)}" placeholder="제목 (선택)" oninput="vids[${i}].title=this.value">
+        <input class="ttl" value="${esc(v.title)}" placeholder="제목 (선택)" oninput="vids()[${i}].title=this.value">
         <div class="u">${sub}</div>
       </div>
       <div class="ops">
         <button onclick="mv(${i},-1)" ${i===0?'disabled':''}>▲</button>
-        <button onclick="mv(${i},1)" ${i===vids.length-1?'disabled':''}>▼</button>
+        <button onclick="mv(${i},1)" ${i===V.length-1?'disabled':''}>▼</button>
         <button class="del" onclick="del(${i})">삭제</button>
       </div>`;
     L.appendChild(d);
@@ -193,10 +234,10 @@ function render(){
 function add(){
   const u=document.getElementById('u').value.trim();
   if(!ytid(u)){ alert('올바른 유튜브 링크를 붙여넣어 주세요.'); return; }
-  if(vids.some(v=>ytid(v.url)===ytid(u))){ alert('이미 목록에 있는 영상입니다.'); return; }
-  vids.push({url:u,title:document.getElementById('t').value.trim()});
+  if(vids().some(v=>ytid(v.url)===ytid(u))){ alert('이미 '+LABEL[ch]+' 목록에 있는 영상입니다.'); return; }
+  vids().push({url:u,title:document.getElementById('t').value.trim()});
   document.getElementById('u').value=''; document.getElementById('t').value=''; render();
-  setStatus('info','추가했습니다. 아래 [게시하기]를 눌러야 사이트에 반영돼요.');
+  setStatus('info', LABEL[ch]+'에 추가했습니다. 아래 [게시하기]를 눌러야 사이트에 반영돼요.');
 }
 function uploadFile(inp){
   const f=inp.files&&inp.files[0]; if(!f) return;
@@ -208,21 +249,21 @@ function uploadFile(inp){
       const b64=String(rd.result).split(',')[1];
       const r=await fetch('/upload',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:f.name,data:b64})});
       const j=await r.json();
-      if(j.ok){ vids.push({file:j.file,title:f.name.replace(/\.[^.]+$/,'')}); render(); um.textContent='파일 추가됨: '+j.file+' — 아래 [게시하기]를 눌러 반영하세요.'; }
+      if(j.ok){ vids().push({file:j.file,title:f.name.replace(/\.[^.]+$/,'')}); render(); um.textContent='파일 추가됨: '+j.file+' ('+LABEL[ch]+') — 아래 [게시하기]를 눌러 반영하세요.'; }
       else { um.textContent='업로드 실패: '+(j.msg||''); }
     }catch(e){ um.textContent='업로드 오류: '+e; }
     inp.value='';
   };
   rd.readAsDataURL(f);
 }
-function del(i){ vids.splice(i,1); render(); }
-function mv(i,dir){ const j=i+dir; if(j<0||j>=vids.length) return; [vids[i],vids[j]]=[vids[j],vids[i]]; render(); }
+function del(i){ vids().splice(i,1); render(); }
+function mv(i,dir){ const V=vids(); const j=i+dir; if(j<0||j>=V.length) return; [V[i],V[j]]=[V[j],V[i]]; render(); }
 function setStatus(cls,msg){ const s=document.getElementById('status'); s.className=cls; s.textContent=msg; }
 async function publish(){
   const btn=document.getElementById('pubBtn'); btn.disabled=true;
   setStatus('info','게시 중… GitHub에 올리는 동안 잠시 기다려 주세요.');
   try{
-    const r=await fetch('/publish',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(vids)});
+    const r=await fetch('/publish',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
     const j=await r.json();
     setStatus(j.ok?'ok':'err', j.msg);
   }catch(e){ setStatus('err','통신 오류: '+e); }
@@ -244,7 +285,11 @@ class H(http.server.BaseHTTPRequestHandler):
         self.wfile.write(data)
     def do_GET(self):
         if self.path in ("/", "/index.html"):
-            page = PAGE.replace("__VIDEOS_JSON__", json.dumps(read_videos(), ensure_ascii=False))
+            labels = {k: CHANNELS[k]["label"] for k in ORDER}
+            cur = {k: read_videos(k) for k in ORDER}
+            page = (PAGE.replace("__LABELS_JSON__", json.dumps(labels, ensure_ascii=False))
+                        .replace("__ORDER_JSON__", json.dumps(ORDER))
+                        .replace("__DATA_JSON__", json.dumps(cur, ensure_ascii=False)))
             self._send(200, page)
         else:
             self._send(404, "not found")
@@ -260,8 +305,8 @@ class H(http.server.BaseHTTPRequestHandler):
     def do_POST(self):
         try:
             if self.path == "/publish":
-                vids = json.loads(self._read_body().decode("utf-8"))
-                result = publish(vids)
+                data = json.loads(self._read_body().decode("utf-8"))
+                result = publish(data)
             elif self.path == "/upload":
                 import base64
                 data = json.loads(self._read_body().decode("utf-8"))
@@ -286,7 +331,7 @@ def main():
     else:
         print("사용 가능한 포트를 찾지 못했습니다."); return
     url = "http://127.0.0.1:%d/" % port
-    print("\n  Econstudy 영상 관리 도구가 실행 중입니다.")
+    print("\n  Econkorea · TOPIKSTUDY 영상 관리 도구가 실행 중입니다.")
     print("  브라우저에서 열기:  " + url)
     print("  (이 창을 닫으면 도구가 종료됩니다.)\n")
     threading.Timer(0.8, lambda: webbrowser.open(url)).start()

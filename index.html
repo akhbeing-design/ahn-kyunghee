@@ -25,7 +25,8 @@
         <a href="#expertise">전문성</a>
         <a href="#career">경력</a>
         <a href="#book">저서</a>
-        <a href="#study">Econstudy</a>
+        <a href="#study">Econkorea</a>
+        <a href="#topik">TOPIKSTUDY</a>
         <a href="#teaching">강의·연구</a>
         <a href="#qna">질의응답</a>
       </div>
@@ -138,12 +139,13 @@
     </div>
   </section>
 
-  <!-- 안박사의 경제스터디 (Econstudy) -->
+  <!-- 안박사의 경제스터디 (Econkorea) -->
   <section class="section alt" id="study">
     <div class="wrap">
       <div class="reveal">
-        <span class="eyebrow">YouTube · Econstudy</span>
+        <span class="eyebrow">YouTube · Econkorea</span>
         <h2 class="section-title" id="studyTitle">안박사의 경제스터디</h2>
+        <p class="section-slogan" id="studySlogan" hidden></p>
         <p class="section-lead" id="studyDesc"></p>
         <div id="studyChannel" style="margin-top:16px"></div>
       </div>
@@ -151,8 +153,22 @@
     </div>
   </section>
 
+  <!-- TOPIKSTUDY -->
+  <section class="section" id="topik">
+    <div class="wrap">
+      <div class="reveal">
+        <span class="eyebrow">YouTube · TOPIKSTUDY</span>
+        <h2 class="section-title" id="topikTitle">TOPIKSTUDY</h2>
+        <p class="section-slogan" id="topikSlogan" hidden></p>
+        <p class="section-lead" id="topikDesc"></p>
+        <div id="topikChannel" style="margin-top:16px"></div>
+      </div>
+      <div class="study-grid reveal" id="topikGrid"></div>
+    </div>
+  </section>
+
   <!-- 강의·연구 -->
-  <section class="section" id="teaching">
+  <section class="section alt" id="teaching">
     <div class="wrap">
       <div class="reveal">
         <span class="eyebrow">Teaching & Research</span>
@@ -176,7 +192,7 @@
   </section>
 
   <!-- 질의응답 -->
-  <section class="section alt" id="qna">
+  <section class="section" id="qna">
     <div class="wrap">
       <div class="reveal">
         <span class="eyebrow">Q &amp; A</span>
@@ -191,6 +207,10 @@
           <button class="btn btn-gold" id="qnaSend">질문 등록</button>
         </div>
         <div class="qna-msg" id="qnaMsg"></div>
+      </div>
+      <div class="qna-kakao reveal" id="qnaKakao" hidden>
+        <span class="qna-kakao-lead">카카오톡으로 바로 물어보셔도 됩니다.</span>
+        <button class="btn btn-kakao" id="kakaoChatBtn" type="button">카카오톡으로 문의하기</button>
       </div>
       <div class="qna-adminbar reveal">
         <button class="qna-admin-link" id="qnaAdminBtn">🔑 관리자</button>
@@ -241,8 +261,10 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="firebase-config.js"></script>
+  <script src="kakao-config.js"></script>
   <script src="data.js"></script>
   <script src="videos.js"></script>
+  <script src="topik_videos.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

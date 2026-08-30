@@ -191,23 +191,11 @@
   });
   P.external.forEach((x) => $("external").appendChild(el("li", null, esc(x))));
 
-  /* ---------- 안박사의 경제스터디 (Econstudy) — 유튜브/동영상 + 추가 UI ---------- */
-  if (P.study && $("studyGrid")) {
-    const S = P.study;
-    $("studyTitle").textContent = S.title + " (" + S.short + ")";
-    $("studyDesc").textContent = S.desc;
-    if (S.channelUrl) {
-      const a = el("a", "btn btn-gold"); a.href = S.channelUrl; a.target = "_blank"; a.rel = "noopener"; a.textContent = "▶ 유튜브 채널 바로가기";
-      $("studyChannel").appendChild(a);
-    }
-    const grid = $("studyGrid");
+  /* ---------- 영상 섹션 (Econkorea · TOPIKSTUDY) — 유튜브/동영상 ---------- */
+  {
     const ytid = (u) => { if (!u) return null; const m = String(u).match(/(?:youtu\.be\/|[?&]v=|shorts\/|embed\/|live\/)([A-Za-z0-9_-]{11})/); return m ? m[1] : (/^[A-Za-z0-9_-]{11}$/.test(u) ? u : null); };
 
-    // 게시된 영상 = data.js(study.videos) + videos.js(window.STUDY_VIDEOS).
-    // videos.js 는 'Econstudy_관리' 로컬 도구가 갱신해서 GitHub에 올린다 → 데스크탑·모바일 모두 반영.
-    const published = [].concat(S.videos || [], window.STUDY_VIDEOS || []);
-
-    // 영상 크게 보기(라이트박스)
+    // 영상 크게 보기(라이트박스) — 두 섹션이 함께 씁니다.
     const lb = $("lightbox"), lbInner = $("lbInner");
     function closeLB() { if (!lb) return; lb.hidden = true; lbInner.innerHTML = ""; }
     function openLB(node) { if (!lb) return; lbInner.innerHTML = ""; lbInner.appendChild(node); lb.hidden = false; }
@@ -246,14 +234,81 @@
       card.appendChild(el("div", "yt-title", esc(title || "동영상")));
       return card;
     }
-    const seen = new Set();
-    published.forEach((v) => {
-      if (v.file) { grid.appendChild(fileCard(v.file, v.title)); return; }   // 사이트에 올린 파일
-      const id = ytid(v.url || v.id);                                        // 유튜브
-      if (id && !seen.has(id)) { seen.add(id); grid.appendChild(ytCard(id, v.title)); }
-    });
-    if (!grid.children.length) grid.appendChild(el("div", "study-empty", '아직 등록된 영상이 없습니다. <b>Econstudy_관리</b> 도구에서 영상을 추가·게시하면 여기에 표시됩니다.'));
+
+    // 한 섹션을 그린다.
+    //   cfg   = data.js 의 study / topik
+    //   extra = videos.js · topik_videos.js 목록 ('Econkorea_관리' 도구가 갱신 → GitHub → 데스크탑·모바일 반영)
+    function renderVideoSection(cfg, ids, extra, emptyMsg) {
+      const grid = $(ids.grid);
+      if (!cfg || !grid) return;
+      const t = $(ids.title);
+      if (t) t.textContent = (cfg.short && cfg.short !== cfg.title) ? cfg.title + " (" + cfg.short + ")" : cfg.title;
+      const g = $(ids.slogan);
+      if (g) { g.textContent = cfg.slogan || ""; g.hidden = !cfg.slogan; }
+      const d = $(ids.desc);
+      if (d) { d.textContent = cfg.desc || ""; d.style.display = cfg.desc ? "" : "none"; }
+      if (cfg.channelUrl && $(ids.channel)) {
+        const a = el("a", "btn btn-gold"); a.href = cfg.channelUrl; a.target = "_blank"; a.rel = "noopener"; a.textContent = "▶ 유튜브 채널 바로가기";
+        $(ids.channel).appendChild(a);
+      }
+      const published = [].concat(cfg.videos || [], extra || []);
+      const seen = new Set();
+      published.forEach((v) => {
+        if (v.file) { grid.appendChild(fileCard(v.file, v.title)); return; }   // 사이트에 올린 파일
+        const id = ytid(v.url || v.id);                                        // 유튜브
+        if (id && !seen.has(id)) { seen.add(id); grid.appendChild(ytCard(id, v.title)); }
+      });
+      if (!grid.children.length) grid.appendChild(el("div", "study-empty", emptyMsg));
+    }
+
+    renderVideoSection(P.study,
+      { title: "studyTitle", slogan: "studySlogan", desc: "studyDesc", channel: "studyChannel", grid: "studyGrid" },
+      window.STUDY_VIDEOS,
+      '아직 등록된 영상이 없습니다. <b>Econkorea_관리</b> 도구에서 채널을 <b>Econkorea</b>로 고르고 영상을 추가·게시하면 여기에 표시됩니다.');
+
+    renderVideoSection(P.topik,
+      { title: "topikTitle", slogan: "topikSlogan", desc: "topikDesc", channel: "topikChannel", grid: "topikGrid" },
+      window.TOPIK_VIDEOS,
+      '아직 등록된 영상이 없습니다. <b>Econkorea_관리</b> 도구에서 채널을 <b>TOPIKSTUDY</b>로 고르고 영상을 추가·게시하면 여기에 표시됩니다.');
   }
+
+  /* ---------- 카카오톡 채널 1:1 채팅 단추 ---------- */
+  // kakao-config.js 의 channelPublicId 만 있어도 단추가 나옵니다.
+  //   · 기본  — 채널 1:1 채팅 주소를 새 창으로 엽니다. 카카오 SDK 를 받지 않습니다.
+  //   · javascriptKey 를 채우면 그때만 SDK(87KB)를 받아 Kakao.Channel.chat() 으로 엽니다.
+  //     (개발자 콘솔에 이 도메인이 등록돼 있어야 하며, 막히면 주소 방식으로 되돌아갑니다.)
+  (function kakaoChannelChat() {
+    const box = $("qnaKakao"), btn = $("kakaoChatBtn");
+    if (!box || !btn) return;
+    const cfg = window.KAKAO_CHANNEL || {};
+    const pid = (cfg.channelPublicId || "").trim();
+    if (!pid) return;
+    const key = (cfg.javascriptKey || "").trim();
+    const chatUrl = "https://pf.kakao.com/" + pid + "/chat";
+    let ready = false;
+
+    if (key) {
+      const sc = document.createElement("script");
+      sc.src = "https://t1.kakaocdn.net/kakao_js_sdk/2.8.2/kakao.min.js";
+      sc.integrity = "sha384-zt/G7/KfaRQ9dT/QIkS0ujMtzouJqzuSJcXVQu50x0rl/+mD1dc70AeOejVbMD9E";
+      sc.crossOrigin = "anonymous";
+      sc.onload = () => {
+        try {
+          if (!Kakao.isInitialized()) Kakao.init(key);
+          ready = Kakao.isInitialized();
+        } catch (e) { ready = false; }
+      };
+      document.head.appendChild(sc);
+    }
+
+    box.hidden = false;
+    btn.addEventListener("click", () => {
+      if (ready && window.Kakao && Kakao.Channel && Kakao.Channel.chat) {
+        try { Kakao.Channel.chat({ channelPublicId: pid }); return; } catch (e) {}
+      }
+      window.open(chatUrl, "_blank", "noopener");
+    });
+  })();
 
   /* ---------- 내비게이션 스크롤 효과 ---------- */
   const nav = $("nav");
@@ -325,7 +380,8 @@
       case "book": return bookAnswer();
       case "research": return { text: "주요 논문·연구예요.\n\n" + P.research.map((r) => "• " + r.title + " (" + r.venue + ")" + (r.note ? " 🏆 " + r.note : "")).join("\n"), chips: qaChips(5) };
       case "endorse": return { text: "이 책과 저를 이렇게 평가해 주셨어요.\n\n" + P.endorsements.map((q) => "“" + q.quote.slice(0, 55) + "…”\n— " + q.name).join("\n\n"), chips: qaChips(5) };
-      case "study": { const n = ((P.study && P.study.videos ? P.study.videos.length : 0) + (window.STUDY_VIDEOS ? window.STUDY_VIDEOS.length : 0)); return { text: (P.study ? P.study.title + "(" + P.study.short + ") — " + P.study.desc : "경제스터디") + (n ? "\n\n위쪽 ‘Econstudy’ 섹션에서 영상을 보실 수 있어요." : "\n\n곧 영상이 올라올 예정이에요. 위쪽 ‘Econstudy’ 섹션을 확인해 주세요."), chips: qaChips(5) }; }
+      case "study": { const n = ((P.study && P.study.videos ? P.study.videos.length : 0) + (window.STUDY_VIDEOS ? window.STUDY_VIDEOS.length : 0)); return { text: (P.study ? P.study.title + "(" + P.study.short + ") — " + P.study.desc : "경제스터디") + (n ? "\n\n위쪽 ‘Econkorea’ 섹션에서 영상을 보실 수 있어요." : "\n\n곧 영상이 올라올 예정이에요. 위쪽 ‘Econkorea’ 섹션을 확인해 주세요."), chips: qaChips(5) }; }
+      case "topik": { const T = P.topik; const n = ((T && T.videos ? T.videos.length : 0) + (window.TOPIK_VIDEOS ? window.TOPIK_VIDEOS.length : 0)); return { text: ((T && T.desc) ? T.title + " — " + T.desc : "TOPIKSTUDY") + (n ? "\n\n위쪽 ‘TOPIKSTUDY’ 섹션에서 영상을 보실 수 있어요." : "\n\n곧 영상이 올라올 예정이에요. 위쪽 ‘TOPIKSTUDY’ 섹션을 확인해 주세요."), chips: qaChips(5) }; }
       case "browse": return { text: "어떤 주제가 궁금하세요? 아래에서 골라보셔도 좋아요.", chips: MENU };
       case "admin": return adminList();
       case "adminClear": Store.set(PENDING, []); return { text: "받은 질문을 모두 비웠어요. 🗑", chips: qaChips(4) };
@@ -360,7 +416,8 @@
     [["논문", "연구", "학술", "학회", "수상"], "research"],
     [["책", "저서", "목차", "유리창"], "book"],
     [["추천", "서평", "평가받"], "endorse"],
-    [["유튜브", "영상", "동영상", "경제스터디", "Econstudy", "스터디"], "study"],
+    [["토픽", "TOPIK", "한국어", "TOPIKSTUDY", "토픽스터디"], "topik"],
+    [["유튜브", "영상", "동영상", "경제스터디", "Econkorea", "Econstudy", "스터디"], "study"],
     [["강의", "강사", "가르", "수업", "과목", "교수"], "teaching"],
     [["경력", "이력", "커리어", "직장 생활", "한신평"], "career"],
     [["학력", "졸업", "박사", "석사", "학사", "전공"], "education"],

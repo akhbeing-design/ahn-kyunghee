@@ -408,20 +408,33 @@ const PROFILE = {
     "서울대 CFO전략과정 ‘신용등급의 실제’ 강의 (2012~2016)"
   ],
 
-  // ── 안박사의 경제스터디 (Econstudy) — 유튜브 ─────────────────
+  // ── 안박사의 경제스터디 (Econkorea) — 유튜브 ─────────────────
   // 영상 추가법: videos 배열에 { url: "유튜브 링크", title: "영상 제목" } 를 넣으면 됩니다.
   //   예) { url: "https://youtu.be/abc123XYZ99", title: "1강 · 신용등급이란?" }
   //   유튜브 주소(youtu.be/…, youtube.com/watch?v=…, /shorts/…) 아무 형식이나 됩니다.
   study: {
     title: "안박사의 경제스터디",
-    short: "Econstudy",
+    short: "Econkorea",
+    slogan: "모두의 답, 나만의 해석",
     desc: "경제·금융을 쉽고 정직하게 풀어주는 안경희 박사의 영상 스터디입니다.",
-    channelUrl: "",   // (선택) 유튜브 채널 주소를 넣으면 '채널 바로가기' 버튼이 생깁니다.
+    channelUrl: "https://www.youtube.com/@ahn.econkorea",
     videos: [
       // 여기에 영상을 추가하세요. 아래는 예시 형식입니다(주석 해제 후 실제 링크로 교체).
       // { url: "https://youtu.be/VIDEO_ID", title: "1강 · 코리아 디스카운트의 진짜 원인" },
       // { url: "https://www.youtube.com/watch?v=VIDEO_ID", title: "2강 · 신용등급을 읽는 법" }
     ]
+  },
+
+  // ── TOPIKSTUDY — 유튜브 ─────────────────────────────────
+  // title / desc / channelUrl 을 채우면 화면에 그대로 나옵니다. (desc 가 비면 소개줄이 숨습니다.)
+  // 영상은 'Econkorea_관리' 도구에서 채널을 TOPIKSTUDY 로 고르고 추가하면 topik_videos.js 에 쌓입니다.
+  topik: {
+    title: "TOPIKSTUDY",
+    short: "TOPIKSTUDY",
+    slogan: "오늘의 뉴스, 내일의 희망",
+    desc: "",
+    channelUrl: "https://www.youtube.com/@ahn.topikstudy",
+    videos: []
   },
 
   // ── 챗봇: 관리자(주인) 설정 ─────────────────────────────
@@ -682,9 +695,10 @@ const PROFILE = {
         ]
     },
     {
-        "q": "안박사의 경제스터디(Econstudy)는 무엇인가요?",
-        "a": "경제·금융을 쉽고 정직하게 풀어주는 유튜브 영상 스터디입니다. 위쪽 'Econstudy' 섹션에서 볼 수 있어요(영상 순차 업로드).",
+        "q": "안박사의 경제스터디(Econkorea)는 무엇인가요?",
+        "a": "경제·금융을 쉽고 정직하게 풀어주는 유튜브 영상 스터디입니다. 위쪽 'Econkorea' 섹션에서 볼 수 있어요(영상 순차 업로드).",
         "tags": [
+            "Econkorea",
             "Econstudy",
             "경제스터디",
             "유튜브",
