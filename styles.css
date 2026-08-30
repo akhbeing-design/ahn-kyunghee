@@ -126,8 +126,9 @@ a { color: inherit; text-decoration: none; }
 }
 .btn-gold { background: var(--gold); color: #241a06; box-shadow: 0 10px 30px rgba(182,146,79,0.35); }
 .btn-gold:hover { transform: translateY(-2px); box-shadow: 0 16px 40px rgba(182,146,79,0.45); }
-.btn-ghost { background: transparent; color: #fff; border: 1px solid var(--line-navy); }
-.btn-ghost:hover { background: rgba(255,255,255,0.06); transform: translateY(-2px); }
+/* 어두운 첫 화면 위에서 테두리가 거의 안 보여서 뚜렷하게 고침 */
+.btn-ghost { background: rgba(255,255,255,0.10); color: #fff; border: 1.5px solid rgba(255,255,255,0.55); }
+.btn-ghost:hover { background: rgba(255,255,255,0.20); border-color: #fff; transform: translateY(-2px); }
 
 .portrait-wrap { justify-self: center; }
 .portrait {
