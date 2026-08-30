@@ -3,4 +3,13 @@
       손으로 고쳐도 되지만, 형식(JSON 배열)을 지켜주세요.
       · 유튜브:   { "url": "https://youtu.be/영상ID", "title": "제목" }
       · 올린파일: { "file": "videos/파일명.mp4", "title": "제목" } */
-window.TOPIK_VIDEOS = [];
+window.TOPIK_VIDEOS = [
+  {
+    "url": "https://youtu.be/XxY9myXG-Hw",
+    "title": "[TOPIKSTUDY] TOPIK 5·6급 어휘 10개 | 경제 뉴스로 배우는 고급 한국어 — 키미 K3는 레몬인가?"
+  },
+  {
+    "url": "https://youtu.be/saky2tySiQ4",
+    "title": "[TOPIKSTUDY] TOPIK 5·6급 어휘 10개와 쓰기 53·54번 — 42.5도 폭염 뉴스로"
+  }
+];
