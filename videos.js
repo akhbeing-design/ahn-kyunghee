@@ -15,5 +15,13 @@ window.STUDY_VIDEOS = [
   {
     "file": "videos/test-baserate-20260713.mp4",
     "title": "[Econkorea] 기준금리 (테스트 영상)"
+  },
+  {
+    "url": "https://youtu.be/PbOJyIjugG8",
+    "title": "[Econkorea] 싼 인공지능은 레몬인가 — 거래비용과 레몬 시장으로 읽는 키미 K3"
+  },
+  {
+    "url": "https://youtu.be/K44s2GcaGHw",
+    "title": "[Econkorea] 42.5도, 그런데 배추는 쌌다 — 공급충격으로 읽는 폭염 물가"
   }
 ];
