@@ -89,6 +89,27 @@ a { color: inherit; text-decoration: none; }
 }
 .navlinks a:hover { color: #fff; }
 .navlinks a:hover::after { width: 100%; }
+.nav-dropdown { position: relative; color: rgba(255,255,255,0.82); font-size: 15px; font-weight: 500; }
+.nav-dropdown summary {
+  display: flex; align-items: center; gap: 5px; padding: 4px 0; cursor: pointer;
+  list-style: none; transition: color .2s;
+}
+.nav-dropdown summary::-webkit-details-marker { display: none; }
+.nav-dropdown summary span { color: var(--gold-soft); font-size: 10px; transition: transform .18s; }
+.nav-dropdown[open] summary, .nav-dropdown:hover summary { color: #fff; }
+.nav-dropdown[open] summary span { transform: rotate(180deg); }
+.nav-submenu {
+  position: absolute; top: calc(100% + 10px); left: 50%; min-width: 142px; padding: 7px;
+  border: 1px solid rgba(255,255,255,.12); border-radius: 10px; background: rgba(10,22,40,.98);
+  box-shadow: 0 14px 34px rgba(0,0,0,.22); transform: translate(-50%, -5px);
+  opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .16s, transform .16s;
+}
+.nav-dropdown:hover .nav-submenu, .nav-dropdown:focus-within .nav-submenu, .nav-dropdown[open] .nav-submenu {
+  opacity: 1; visibility: visible; pointer-events: auto; transform: translate(-50%, 0);
+}
+.navlinks .nav-submenu a { display: block; padding: 9px 12px; border-radius: 7px; color: rgba(255,255,255,.84); white-space: nowrap; }
+.navlinks .nav-submenu a::after { display: none; }
+.navlinks .nav-submenu a:hover { background: rgba(203,176,122,.14); color: var(--gold-soft); }
 
 /* ---------- 히어로 ---------- */
 .hero {
@@ -518,6 +539,20 @@ img { max-width: 100%; }
   .nav.menu-open .navlinks { display: flex; }
   .navlinks a { width: 100%; padding: 15px 22px; font-size: 16px; color: #fff; }
   .navlinks a::after { display: none; }
+  .nav-dropdown { width: 100%; font-size: 16px; }
+  .nav-dropdown summary { padding: 15px 22px 8px; color: #fff; cursor: default; }
+  .nav-dropdown summary span { display: none; }
+  .nav-submenu,
+  .nav-dropdown:hover .nav-submenu,
+  .nav-dropdown:focus-within .nav-submenu,
+  .nav-dropdown[open] .nav-submenu {
+    position: static; display: flex; min-width: 0; padding: 0 14px 10px; border: 0; border-radius: 0;
+    background: transparent; box-shadow: none; transform: none; opacity: 1; visibility: visible; pointer-events: auto;
+  }
+  .navlinks .nav-submenu a {
+    width: auto; flex: 1; margin: 0 4px; padding: 10px 12px; border: 1px solid rgba(203,176,122,.32);
+    border-radius: 8px; color: var(--gold-soft); text-align: center; font-size: 14px;
+  }
 
   /* 히어로 → 1열, 사진을 위로 */
   .hero { min-height: auto; padding: 104px 0 66px; }
